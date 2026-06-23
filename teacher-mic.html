@@ -6,18 +6,18 @@
   <title>つたえる君 外部マイク</title>
   <style>
     :root {
-      --bg: #f3fffb;
-      --panel: #ffffff;
-      --panel-soft: #f0fffc;
-      --text: #153634;
-      --muted: #5f7d78;
-      --main: #20b4a6;
-      --main-dark: #0f8f85;
-      --line: #a8ede4;
-      --line-strong: #38d5c8;
-      --accent: #5a7ce8;
-      --danger: #d84d61;
-      --shadow: 0 24px 80px rgba(31, 145, 130, 0.16);
+      --bg: #020807;
+      --panel: #061411;
+      --panel-soft: #09231d;
+      --text: #f7fffc;
+      --muted: #a9c8bf;
+      --main: #28d7c3;
+      --main-dark: #12a99a;
+      --line: rgba(40, 215, 195, 0.42);
+      --line-strong: #28d7c3;
+      --accent: #8fb3ff;
+      --danger: #ff7890;
+      --shadow: 0 22px 80px rgba(0, 0, 0, 0.46);
     }
 
     * {
@@ -27,57 +27,23 @@
     body {
       margin: 0;
       min-height: 100vh;
-      background:
-        radial-gradient(circle at 15% 10%, rgba(59, 213, 200, 0.18), transparent 34%),
-        radial-gradient(circle at 85% 0%, rgba(90, 124, 232, 0.12), transparent 32%),
-        linear-gradient(135deg, #eafff7, #f7fbff);
+      background: radial-gradient(circle at 14% 0%, rgba(40, 215, 195, 0.18), transparent 30%),
+        radial-gradient(circle at 90% 18%, rgba(143, 179, 255, 0.14), transparent 34%),
+        var(--bg);
       color: var(--text);
       font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      padding: 24px;
+      padding: 16px;
+      overflow: hidden;
     }
 
     main {
-      width: min(1040px, 100%);
-      margin: 0 auto;
-      background: rgba(255, 255, 255, 0.94);
-      border: 1px solid var(--line);
-      border-radius: 24px;
-      padding: 24px;
-      box-shadow: var(--shadow);
-    }
-
-    .brand {
-      display: flex;
-      align-items: center;
-      gap: 16px;
-      padding: 12px;
-      border: 1px solid var(--line);
-      border-radius: 20px;
-      background: rgba(255, 255, 255, 0.86);
-    }
-
-    .logo {
       display: grid;
-      place-items: center;
-      width: 64px;
-      height: 64px;
-      border-radius: 18px;
-      border: 2px dashed var(--line-strong);
-      background: #e6fffa;
-      color: var(--main-dark);
-      font-size: 2rem;
-      font-weight: 900;
-    }
-
-    h1 {
-      margin: 0;
-      font-size: clamp(1.55rem, 4vw, 2.45rem);
-      line-height: 1.15;
-      letter-spacing: 0;
-    }
-
-    .brand p {
-      margin: 4px 0 0;
+      grid-template-rows: minmax(0, 1fr) auto;
+      gap: 14px;
+      width: min(1200px, 100%);
+      height: calc(100vh - 32px);
+      margin: 0 auto;
+      background: transparent;
     }
 
     p {
@@ -86,28 +52,32 @@
     }
 
     .status {
+      position: absolute;
+      right: 26px;
+      bottom: 84px;
+      z-index: 2;
       display: inline-flex;
       align-items: center;
       gap: 8px;
-      min-height: 42px;
+      max-width: min(62vw, 640px);
+      min-height: 36px;
       border-radius: 999px;
-      background: #e8fbf8;
-      color: var(--main-dark);
-      padding: 8px 16px;
+      background: rgba(9, 35, 29, 0.94);
+      color: var(--main);
+      border: 1px solid var(--line);
+      padding: 7px 12px;
       font-weight: 800;
-      margin: 16px 0;
+      margin: 0;
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.34);
     }
 
     .status.is-error {
-      background: #fff0f3;
+      background: rgba(60, 12, 22, 0.96);
       color: var(--danger);
     }
 
     .controls {
-      display: flex;
-      gap: 12px;
-      flex-wrap: wrap;
-      margin: 16px 0 20px;
+      display: none;
     }
 
     button {
@@ -121,19 +91,19 @@
 
     .main-button {
       background: var(--main);
-      color: #fff;
-      box-shadow: 0 12px 32px rgba(32, 180, 166, 0.26);
+      color: #002a25;
+      box-shadow: 0 18px 42px rgba(40, 215, 195, 0.26);
     }
 
     .sub-button {
-      background: #eefcf9;
-      color: var(--main-dark);
+      background: rgba(9, 35, 29, 0.92);
+      color: var(--text);
       border: 1px solid var(--line);
     }
 
     .sub-button.is-active {
       background: var(--main);
-      color: #fff;
+      color: #002a25;
       border-color: var(--main);
     }
 
@@ -143,55 +113,69 @@
     }
 
     .meta {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 12px;
-      margin: 18px 0;
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin: 0 0 10px;
     }
 
     .meta div {
       border: 1px solid var(--line);
-      border-radius: 16px;
-      padding: 12px;
-      background: #fbfffe;
+      border-radius: 999px;
+      padding: 7px 11px;
+      background: rgba(6, 20, 17, 0.88);
     }
 
     .meta small {
-      display: block;
+      display: inline;
       color: var(--muted);
       font-weight: 700;
-      margin-bottom: 4px;
+      margin-right: 6px;
+    }
+
+    .meta strong {
+      color: var(--text);
     }
 
     textarea {
       width: 100%;
-      min-height: 34vh;
+      height: 100%;
+      min-height: 180px;
       resize: vertical;
       border: 1px solid var(--line);
-      border-radius: 18px;
-      padding: 16px;
-      font-size: 1.18rem;
+      border-radius: 24px;
+      padding: 18px 104px 22px 18px;
+      font-size: clamp(1.06rem, 2.2vw, 1.55rem);
       line-height: 1.9;
       color: var(--text);
-      background: #fff;
+      background: rgba(1, 8, 7, 0.86);
+      outline: none;
+    }
+
+    textarea:focus {
+      border-color: var(--main);
+      box-shadow: 0 0 0 4px rgba(40, 215, 195, 0.14);
     }
 
     .pending {
-      margin-top: 12px;
-      padding: 12px 14px;
+      min-height: 44px;
+      margin-top: 10px;
+      padding: 10px 12px;
       border: 1px dashed var(--line);
       border-radius: 16px;
       color: var(--muted);
-      background: #fbfffe;
+      background: rgba(9, 35, 29, 0.62);
       line-height: 1.7;
     }
 
     .history {
-      margin-top: 18px;
       border: 1px solid var(--line);
-      border-radius: 20px;
-      background: var(--panel-soft);
+      border-radius: 24px;
+      background: rgba(6, 20, 17, 0.82);
+      box-shadow: var(--shadow);
       padding: 16px;
+      min-height: 0;
+      overflow: hidden;
     }
 
     .history-head {
@@ -205,6 +189,7 @@
 
     .history-head h2 {
       margin: 0;
+      color: var(--text);
       font-size: 1.1rem;
     }
 
@@ -222,6 +207,10 @@
     .history-list {
       display: grid;
       gap: 10px;
+      align-content: start;
+      max-height: calc(100% - 54px);
+      overflow: auto;
+      padding-right: 4px;
     }
 
     .history-empty {
@@ -233,13 +222,13 @@
     .history-card {
       border: 1px solid var(--line);
       border-radius: 16px;
-      background: rgba(255, 255, 255, 0.92);
+      background: rgba(2, 8, 7, 0.82);
       padding: 12px 14px;
     }
 
     .history-card small {
       display: block;
-      color: var(--main-dark);
+      color: var(--main);
       font-weight: 800;
       margin-bottom: 6px;
     }
@@ -251,14 +240,50 @@
       white-space: pre-wrap;
     }
 
+    .input-area {
+      position: relative;
+      border: 1px solid var(--line);
+      border-radius: 26px;
+      background: rgba(6, 20, 17, 0.86);
+      box-shadow: var(--shadow);
+      padding: 14px;
+    }
+
+    .textarea-shell {
+      position: relative;
+      height: min(35vh, 320px);
+      min-height: 190px;
+    }
+
+    .mic-toggle {
+      position: absolute;
+      right: 18px;
+      bottom: 18px;
+      z-index: 3;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      padding: 0;
+      font-size: 1.55rem;
+    }
+
+    .mic-toggle.is-running {
+      background: var(--danger);
+      color: #fff;
+      box-shadow: 0 18px 42px rgba(255, 120, 144, 0.24);
+    }
+
     @media (max-width: 640px) {
       body {
-        padding: 12px;
+        padding: 10px;
       }
 
       main {
-        padding: 18px;
-        border-radius: 18px;
+        height: calc(100vh - 20px);
+        gap: 10px;
       }
 
       .meta {
@@ -269,16 +294,6 @@
         width: 100%;
       }
 
-      .brand {
-        align-items: flex-start;
-      }
-
-      .logo {
-        width: 54px;
-        height: 54px;
-        border-radius: 16px;
-      }
-
       .history-head {
         align-items: stretch;
       }
@@ -287,55 +302,74 @@
         display: grid;
         grid-template-columns: 1fr 1fr;
       }
+
+      .history {
+        padding: 12px;
+      }
+
+      .input-area {
+        padding: 10px;
+      }
+
+      .textarea-shell {
+        height: 34vh;
+        min-height: 170px;
+      }
+
+      .status {
+        right: 20px;
+        bottom: 78px;
+        left: 20px;
+        max-width: none;
+      }
+
+      .mic-toggle {
+        width: 64px;
+        height: 64px;
+      }
     }
   </style>
 </head>
 <body>
   <main>
-    <div class="brand">
-      <div class="logo" aria-hidden="true">つ</div>
-      <div>
-        <h1>つたえる君 外部マイク</h1>
-        <p>Google Chromeの音声認識で、授業の音声を本体アプリへ送ります。</p>
-      </div>
-    </div>
-
-    <div class="meta">
-      <div>
-        <small>ルームID</small>
-        <strong id="room-id-label">未設定</strong>
-      </div>
-      <div>
-        <small>教科</small>
-        <strong id="subject-label">math</strong>
-      </div>
-      <div>
-        <small>送信</small>
-        <strong id="sent-count-label">0件</strong>
-      </div>
-    </div>
-
-    <div class="controls">
-      <button class="main-button" type="button" id="start-button">マイク開始</button>
-      <button class="sub-button" type="button" id="stop-button" disabled>停止</button>
-      <button class="sub-button" type="button" id="flush-button">今の内容を送信</button>
-    </div>
-
-    <div class="status" id="status">停止中</div>
-    <textarea id="text" placeholder="ここに音声認識された内容が入ります。"></textarea>
-    <div class="pending" id="pending">送信待ちの内容はありません。</div>
-
     <section class="history" aria-labelledby="history-title">
       <div class="history-head">
         <h2 id="history-title">送信した文</h2>
         <div class="history-actions">
-          <button class="sub-button is-active" type="button" id="history-oldest-button">最初から並べる</button>
-          <button class="sub-button" type="button" id="history-newest-button">最新文から並べる</button>
+          <button class="sub-button" type="button" id="history-oldest-button">最初から並べる</button>
+          <button class="sub-button is-active" type="button" id="history-newest-button">最新文から並べる</button>
         </div>
       </div>
       <div class="history-list" id="history-list">
         <p class="history-empty">まだ送信した文はありません。</p>
       </div>
+    </section>
+
+    <section class="input-area" aria-label="音声入力">
+      <div class="meta">
+        <div>
+          <small>ルーム</small>
+          <strong id="room-id-label">未設定</strong>
+        </div>
+        <div>
+          <small>教科</small>
+          <strong id="subject-label">math</strong>
+        </div>
+        <div>
+          <small>送信</small>
+          <strong id="sent-count-label">0件</strong>
+        </div>
+      </div>
+
+      <div class="textarea-shell">
+        <textarea id="text" placeholder="マイク開始を押して話してください。送信した文は上の履歴に残ります。"></textarea>
+        <div class="status" id="status">停止中</div>
+        <button class="main-button mic-toggle" type="button" id="start-button" aria-label="マイク開始">
+          <span aria-hidden="true">🎙</span>
+        </button>
+      </div>
+
+      <div class="pending" id="pending">送信待ちの内容はありません。</div>
     </section>
   </main>
 
@@ -481,8 +515,6 @@
 
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     const startButton = document.getElementById('start-button');
-    const stopButton = document.getElementById('stop-button');
-    const flushButton = document.getElementById('flush-button');
     const statusEl = document.getElementById('status');
     const textEl = document.getElementById('text');
     const pendingEl = document.getElementById('pending');
@@ -498,7 +530,7 @@
     let idleFlushTimer = 0;
     let sentCount = 0;
     let sentHistory = [];
-    let historyOrder = 'oldest';
+    let historyOrder = 'newest';
 
     document.getElementById('room-id-label').textContent = roomId || '未設定';
     document.getElementById('subject-label').textContent = subject;
@@ -655,7 +687,7 @@
     function appendVisibleText(text) {
       const safeText = normalizeText(text);
       if (!safeText) return;
-      textEl.value = normalizeText((textEl.value ? textEl.value + '\n' : '') + safeText);
+      textEl.value = safeText;
       textEl.scrollTop = textEl.scrollHeight;
     }
 
@@ -687,6 +719,7 @@
       sendLessonText(safeText, false);
       addSentHistory(safeText);
       pendingText = '';
+      textEl.value = '';
       updatePendingView();
       scheduleSilenceFlush();
     }
@@ -742,8 +775,9 @@
 
       rec.onstart = () => {
         running = true;
-        startButton.disabled = true;
-        stopButton.disabled = false;
+        startButton.classList.add('is-running');
+        startButton.setAttribute('aria-label', '停止');
+        startButton.innerHTML = '<span aria-hidden="true">■</span>';
         setStatus('マイク入力中です。', false);
       };
 
@@ -770,21 +804,25 @@
               setStatus('マイクの再開に失敗しました。もう一度マイク開始を押してください。', true);
               running = false;
               startButton.disabled = false;
-              stopButton.disabled = true;
+              startButton.classList.remove('is-running');
+              startButton.setAttribute('aria-label', 'マイク開始');
+              startButton.innerHTML = '<span aria-hidden="true">🎙</span>';
             }
           }, 400);
           return;
         }
 
         startButton.disabled = false;
-        stopButton.disabled = true;
+        startButton.classList.remove('is-running');
+        startButton.setAttribute('aria-label', 'マイク開始');
+        startButton.innerHTML = '<span aria-hidden="true">🎙</span>';
         setStatus('停止中', false);
       };
 
       return rec;
     }
 
-    startButton.addEventListener('click', () => {
+    function startMic() {
       if (!SpeechRecognition) {
         setStatus('このブラウザは音声認識に対応していません。Google Chromeで開いてください。', true);
         return;
@@ -802,16 +840,20 @@
       } catch (error) {
         setStatus('マイクを開始できませんでした。ページを再読み込みしてもう一度試してください。', true);
       }
-    });
+    }
 
-    stopButton.addEventListener('click', () => {
+    function stopMic() {
       running = false;
       flushPendingText(true);
       if (recognition) recognition.stop();
-    });
+    }
 
-    flushButton.addEventListener('click', () => {
-      flushPendingText(true);
+    startButton.addEventListener('click', () => {
+      if (running) {
+        stopMic();
+      } else {
+        startMic();
+      }
     });
 
     historyOldestButton.addEventListener('click', () => {
