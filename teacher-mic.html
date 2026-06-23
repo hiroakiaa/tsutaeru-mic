@@ -8,12 +8,16 @@
     :root {
       --bg: #f3fffb;
       --panel: #ffffff;
+      --panel-soft: #f0fffc;
       --text: #153634;
       --muted: #5f7d78;
       --main: #20b4a6;
       --main-dark: #0f8f85;
       --line: #a8ede4;
+      --line-strong: #38d5c8;
+      --accent: #5a7ce8;
       --danger: #d84d61;
+      --shadow: 0 24px 80px rgba(31, 145, 130, 0.16);
     }
 
     * {
@@ -23,26 +27,57 @@
     body {
       margin: 0;
       min-height: 100vh;
-      background: linear-gradient(135deg, #eafff7, #f7fbff);
+      background:
+        radial-gradient(circle at 15% 10%, rgba(59, 213, 200, 0.18), transparent 34%),
+        radial-gradient(circle at 85% 0%, rgba(90, 124, 232, 0.12), transparent 32%),
+        linear-gradient(135deg, #eafff7, #f7fbff);
       color: var(--text);
       font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       padding: 24px;
     }
 
     main {
-      width: min(960px, 100%);
+      width: min(1040px, 100%);
       margin: 0 auto;
       background: rgba(255, 255, 255, 0.94);
       border: 1px solid var(--line);
       border-radius: 24px;
       padding: 24px;
-      box-shadow: 0 24px 80px rgba(31, 145, 130, 0.16);
+      box-shadow: var(--shadow);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      background: rgba(255, 255, 255, 0.86);
+    }
+
+    .logo {
+      display: grid;
+      place-items: center;
+      width: 64px;
+      height: 64px;
+      border-radius: 18px;
+      border: 2px dashed var(--line-strong);
+      background: #e6fffa;
+      color: var(--main-dark);
+      font-size: 2rem;
+      font-weight: 900;
     }
 
     h1 {
-      margin: 0 0 8px;
-      font-size: clamp(1.7rem, 5vw, 3rem);
-      line-height: 1.1;
+      margin: 0;
+      font-size: clamp(1.55rem, 4vw, 2.45rem);
+      line-height: 1.15;
+      letter-spacing: 0;
+    }
+
+    .brand p {
+      margin: 4px 0 0;
     }
 
     p {
@@ -96,6 +131,12 @@
       border: 1px solid var(--line);
     }
 
+    .sub-button.is-active {
+      background: var(--main);
+      color: #fff;
+      border-color: var(--main);
+    }
+
     button:disabled {
       opacity: 0.45;
       cursor: not-allowed;
@@ -124,7 +165,7 @@
 
     textarea {
       width: 100%;
-      min-height: 42vh;
+      min-height: 34vh;
       resize: vertical;
       border: 1px solid var(--line);
       border-radius: 18px;
@@ -145,6 +186,71 @@
       line-height: 1.7;
     }
 
+    .history {
+      margin-top: 18px;
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      background: var(--panel-soft);
+      padding: 16px;
+    }
+
+    .history-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 12px;
+    }
+
+    .history-head h2 {
+      margin: 0;
+      font-size: 1.1rem;
+    }
+
+    .history-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .history-actions button {
+      padding: 10px 14px;
+      font-size: 0.9rem;
+    }
+
+    .history-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .history-empty {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.7;
+    }
+
+    .history-card {
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.92);
+      padding: 12px 14px;
+    }
+
+    .history-card small {
+      display: block;
+      color: var(--main-dark);
+      font-weight: 800;
+      margin-bottom: 6px;
+    }
+
+    .history-card p {
+      margin: 0;
+      color: var(--text);
+      line-height: 1.8;
+      white-space: pre-wrap;
+    }
+
     @media (max-width: 640px) {
       body {
         padding: 12px;
@@ -162,13 +268,37 @@
       button {
         width: 100%;
       }
+
+      .brand {
+        align-items: flex-start;
+      }
+
+      .logo {
+        width: 54px;
+        height: 54px;
+        border-radius: 16px;
+      }
+
+      .history-head {
+        align-items: stretch;
+      }
+
+      .history-actions {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+      }
     }
   </style>
 </head>
 <body>
   <main>
-    <h1>つたえる君 外部マイク</h1>
-    <p>このページはGoogle Chromeの音声認識を使い、授業の音声を本体アプリへ送ります。マイク開始を押して、授業中はこのタブを開いたままにしてください。</p>
+    <div class="brand">
+      <div class="logo" aria-hidden="true">つ</div>
+      <div>
+        <h1>つたえる君 外部マイク</h1>
+        <p>Google Chromeの音声認識で、授業の音声を本体アプリへ送ります。</p>
+      </div>
+    </div>
 
     <div class="meta">
       <div>
@@ -194,11 +324,25 @@
     <div class="status" id="status">停止中</div>
     <textarea id="text" placeholder="ここに音声認識された内容が入ります。"></textarea>
     <div class="pending" id="pending">送信待ちの内容はありません。</div>
+
+    <section class="history" aria-labelledby="history-title">
+      <div class="history-head">
+        <h2 id="history-title">送信した文</h2>
+        <div class="history-actions">
+          <button class="sub-button is-active" type="button" id="history-oldest-button">最初から並べる</button>
+          <button class="sub-button" type="button" id="history-newest-button">最新文から並べる</button>
+        </div>
+      </div>
+      <div class="history-list" id="history-list">
+        <p class="history-empty">まだ送信した文はありません。</p>
+      </div>
+    </section>
   </main>
 
   <script>
     const GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzBSH540vZK4G62twUfsketq9Pi2RZFocmfcNFwdEVV-IPqHH1Izb0VAFW_SRtN4nbf/exec';
     const LESSON_MIC_IDLE_STATUS_MS = 4500;
+    const LESSON_MIC_IDLE_FLUSH_MS = 10000;
     const LESSON_MIC_CHUNK_SENTENCE_COUNT = 3;
     const LESSON_MIC_MIN_CHARS = 2;
     const KOTOBA_MIC_CORRECTIONS = [
@@ -343,12 +487,18 @@
     const textEl = document.getElementById('text');
     const pendingEl = document.getElementById('pending');
     const sentCountEl = document.getElementById('sent-count-label');
+    const historyListEl = document.getElementById('history-list');
+    const historyOldestButton = document.getElementById('history-oldest-button');
+    const historyNewestButton = document.getElementById('history-newest-button');
 
     let recognition = null;
     let running = false;
     let pendingText = '';
     let silenceTimer = 0;
+    let idleFlushTimer = 0;
     let sentCount = 0;
+    let sentHistory = [];
+    let historyOrder = 'oldest';
 
     document.getElementById('room-id-label').textContent = roomId || '未設定';
     document.getElementById('subject-label').textContent = subject;
@@ -356,6 +506,58 @@
     function setStatus(message, isError) {
       statusEl.textContent = message;
       statusEl.classList.toggle('is-error', Boolean(isError));
+    }
+
+    function formatHistoryTime(date) {
+      return [
+        String(date.getHours()).padStart(2, '0'),
+        String(date.getMinutes()).padStart(2, '0'),
+        String(date.getSeconds()).padStart(2, '0')
+      ].join(':');
+    }
+
+    function renderSentHistory() {
+      const rows = historyOrder === 'newest'
+        ? sentHistory.slice().reverse()
+        : sentHistory.slice();
+
+      historyOldestButton.classList.toggle('is-active', historyOrder === 'oldest');
+      historyNewestButton.classList.toggle('is-active', historyOrder === 'newest');
+
+      if (!rows.length) {
+        historyListEl.innerHTML = '<p class="history-empty">まだ送信した文はありません。</p>';
+        return;
+      }
+
+      historyListEl.innerHTML = rows.map((item) => {
+        return [
+          '<article class="history-card">',
+          '<small>#' + item.index + ' ' + item.time + '</small>',
+          '<p>' + escapeHtml(item.text) + '</p>',
+          '</article>'
+        ].join('');
+      }).join('');
+    }
+
+    function addSentHistory(text) {
+      const safeText = normalizeText(text);
+      if (!safeText) return;
+
+      sentHistory.push({
+        index: sentHistory.length + 1,
+        time: formatHistoryTime(new Date()),
+        text: safeText
+      });
+      renderSentHistory();
+    }
+
+    function escapeHtml(value) {
+      return String(value || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
     }
 
     function normalizeText(value) {
@@ -465,18 +667,26 @@
 
     function scheduleSilenceFlush() {
       clearTimeout(silenceTimer);
+      clearTimeout(idleFlushTimer);
+
       silenceTimer = setTimeout(() => {
-        setStatus('音声入力中です。3つ分たまると授業ログに確定します。', false);
+        setStatus('音声入力中です。10秒ほど次の音声がなければ、残りを授業ログに確定します。', false);
       }, LESSON_MIC_IDLE_STATUS_MS);
+
+      idleFlushTimer = setTimeout(() => {
+        flushPendingText(true);
+      }, LESSON_MIC_IDLE_FLUSH_MS);
     }
 
     function addPendingText(text) {
       const safeText = prepareSpeechTextForLessonChunk(text);
       if (!safeText) return;
 
-      pendingText = normalizeText((pendingText ? pendingText + ' / ' : '') + safeText);
+      pendingText = safeText;
       updatePendingView();
       sendLessonText(safeText, false);
+      addSentHistory(safeText);
+      pendingText = '';
       updatePendingView();
       scheduleSilenceFlush();
     }
@@ -489,6 +699,7 @@
       pendingText = '';
       updatePendingView();
       clearTimeout(silenceTimer);
+      clearTimeout(idleFlushTimer);
       sendLessonText('', true);
     }
 
@@ -603,9 +814,21 @@
       flushPendingText(true);
     });
 
+    historyOldestButton.addEventListener('click', () => {
+      historyOrder = 'oldest';
+      renderSentHistory();
+    });
+
+    historyNewestButton.addEventListener('click', () => {
+      historyOrder = 'newest';
+      renderSentHistory();
+    });
+
     window.addEventListener('beforeunload', () => {
       flushPendingText(true);
     });
+
+    renderSentHistory();
   </script>
 </body>
 </html>
