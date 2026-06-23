@@ -52,14 +52,11 @@
     }
 
     .status {
-      position: absolute;
-      right: 26px;
-      bottom: 84px;
-      z-index: 2;
       display: inline-flex;
       align-items: center;
       gap: 8px;
-      max-width: min(62vw, 640px);
+      flex: 1 1 auto;
+      max-width: none;
       min-height: 36px;
       border-radius: 999px;
       background: rgba(9, 35, 29, 0.94);
@@ -69,6 +66,7 @@
       font-weight: 800;
       margin: 0;
       box-shadow: 0 12px 30px rgba(0, 0, 0, 0.34);
+      line-height: 1.5;
     }
 
     .status.is-error {
@@ -116,7 +114,7 @@
       display: flex;
       gap: 8px;
       flex-wrap: wrap;
-      margin: 0 0 10px;
+      margin: 0;
     }
 
     .meta div {
@@ -135,37 +133,6 @@
 
     .meta strong {
       color: var(--text);
-    }
-
-    textarea {
-      width: 100%;
-      height: 100%;
-      min-height: 180px;
-      resize: vertical;
-      border: 1px solid var(--line);
-      border-radius: 24px;
-      padding: 18px 104px 22px 18px;
-      font-size: clamp(1.06rem, 2.2vw, 1.55rem);
-      line-height: 1.9;
-      color: var(--text);
-      background: rgba(1, 8, 7, 0.86);
-      outline: none;
-    }
-
-    textarea:focus {
-      border-color: var(--main);
-      box-shadow: 0 0 0 4px rgba(40, 215, 195, 0.14);
-    }
-
-    .pending {
-      min-height: 44px;
-      margin-top: 10px;
-      padding: 10px 12px;
-      border: 1px dashed var(--line);
-      border-radius: 16px;
-      color: var(--muted);
-      background: rgba(9, 35, 29, 0.62);
-      line-height: 1.7;
     }
 
     .history {
@@ -187,12 +154,6 @@
       margin-bottom: 12px;
     }
 
-    .history-head h2 {
-      margin: 0;
-      color: var(--text);
-      font-size: 1.1rem;
-    }
-
     .history-actions {
       display: flex;
       gap: 8px;
@@ -208,7 +169,7 @@
       display: grid;
       gap: 10px;
       align-content: start;
-      max-height: calc(100% - 54px);
+      max-height: calc(100% - 52px);
       overflow: auto;
       padding-right: 4px;
     }
@@ -226,11 +187,55 @@
       padding: 12px 14px;
     }
 
+    .history-card.is-sending {
+      border-color: rgba(255, 216, 117, 0.72);
+      background: rgba(31, 24, 8, 0.78);
+    }
+
+    .history-card-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 6px;
+    }
+
     .history-card small {
-      display: block;
       color: var(--main);
       font-weight: 800;
-      margin-bottom: 6px;
+    }
+
+    .history-card-state {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      border: 1px solid rgba(40, 215, 195, 0.34);
+      border-radius: 999px;
+      padding: 4px 8px;
+      color: var(--muted);
+      font-size: 0.78rem;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    .history-card.is-sending .history-card-state {
+      border-color: rgba(255, 216, 117, 0.56);
+      color: #ffe3a1;
+    }
+
+    .history-spinner {
+      width: 12px;
+      height: 12px;
+      border: 2px solid rgba(255, 227, 161, 0.32);
+      border-top-color: #ffe3a1;
+      border-radius: 50%;
+      animation: kotoba-spin 0.8s linear infinite;
+    }
+
+    @keyframes kotoba-spin {
+      to {
+        transform: rotate(360deg);
+      }
     }
 
     .history-card p {
@@ -241,33 +246,26 @@
     }
 
     .input-area {
-      position: relative;
+      display: flex;
+      align-items: center;
+      gap: 12px;
       border: 1px solid var(--line);
-      border-radius: 26px;
+      border-radius: 22px;
       background: rgba(6, 20, 17, 0.86);
       box-shadow: var(--shadow);
-      padding: 14px;
-    }
-
-    .textarea-shell {
-      position: relative;
-      height: min(35vh, 320px);
-      min-height: 190px;
+      padding: 12px 14px;
     }
 
     .mic-toggle {
-      position: absolute;
-      right: 18px;
-      bottom: 18px;
-      z-index: 3;
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      width: 72px;
-      height: 72px;
+      flex: 0 0 auto;
+      width: 58px;
+      height: 58px;
       border-radius: 50%;
       padding: 0;
-      font-size: 1.55rem;
+      font-size: 1.34rem;
     }
 
     .mic-toggle.is-running {
@@ -284,10 +282,6 @@
       main {
         height: calc(100vh - 20px);
         gap: 10px;
-      }
-
-      .meta {
-        grid-template-columns: 1fr;
       }
 
       button {
@@ -309,32 +303,43 @@
 
       .input-area {
         padding: 10px;
-      }
-
-      .textarea-shell {
-        height: 34vh;
-        min-height: 170px;
+        gap: 8px;
       }
 
       .status {
-        right: 20px;
-        bottom: 78px;
-        left: 20px;
-        max-width: none;
+        min-height: 44px;
+        font-size: 0.92rem;
       }
 
       .mic-toggle {
-        width: 64px;
-        height: 64px;
+        width: 54px;
+        height: 54px;
+      }
+
+      .input-area .mic-toggle {
+        width: 54px;
       }
     }
   </style>
 </head>
 <body>
   <main>
-    <section class="history" aria-labelledby="history-title">
+    <section class="history" aria-label="送信した文">
       <div class="history-head">
-        <h2 id="history-title">送信した文</h2>
+        <div class="meta">
+          <div>
+            <small>ルーム</small>
+            <strong id="room-id-label">未設定</strong>
+          </div>
+          <div>
+            <small>教科</small>
+            <strong id="subject-label">math</strong>
+          </div>
+          <div>
+            <small>送信</small>
+            <strong id="sent-count-label">0件</strong>
+          </div>
+        </div>
         <div class="history-actions">
           <button class="sub-button" type="button" id="history-oldest-button">最初から並べる</button>
           <button class="sub-button is-active" type="button" id="history-newest-button">最新文から並べる</button>
@@ -346,30 +351,10 @@
     </section>
 
     <section class="input-area" aria-label="音声入力">
-      <div class="meta">
-        <div>
-          <small>ルーム</small>
-          <strong id="room-id-label">未設定</strong>
-        </div>
-        <div>
-          <small>教科</small>
-          <strong id="subject-label">math</strong>
-        </div>
-        <div>
-          <small>送信</small>
-          <strong id="sent-count-label">0件</strong>
-        </div>
-      </div>
-
-      <div class="textarea-shell">
-        <textarea id="text" placeholder="マイク開始を押して話してください。送信した文は上の履歴に残ります。"></textarea>
-        <div class="status" id="status">停止中</div>
-        <button class="main-button mic-toggle" type="button" id="start-button" aria-label="マイク開始">
-          <span aria-hidden="true">🎙</span>
-        </button>
-      </div>
-
-      <div class="pending" id="pending">送信待ちの内容はありません。</div>
+      <div class="status" id="status">停止中</div>
+      <button class="main-button mic-toggle" type="button" id="start-button" aria-label="マイク開始">
+        <span aria-hidden="true">🎙</span>
+      </button>
     </section>
   </main>
 
@@ -516,8 +501,6 @@
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     const startButton = document.getElementById('start-button');
     const statusEl = document.getElementById('status');
-    const textEl = document.getElementById('text');
-    const pendingEl = document.getElementById('pending');
     const sentCountEl = document.getElementById('sent-count-label');
     const historyListEl = document.getElementById('history-list');
     const historyOldestButton = document.getElementById('history-oldest-button');
@@ -525,7 +508,6 @@
 
     let recognition = null;
     let running = false;
-    let pendingText = '';
     let silenceTimer = 0;
     let idleFlushTimer = 0;
     let sentCount = 0;
@@ -557,29 +539,51 @@
       historyNewestButton.classList.toggle('is-active', historyOrder === 'newest');
 
       if (!rows.length) {
-        historyListEl.innerHTML = '<p class="history-empty">まだ送信した文はありません。</p>';
+        historyListEl.innerHTML = '<p class="history-empty">マイク開始を押して話すと、ここに送信した文が残ります。</p>';
         return;
       }
 
       historyListEl.innerHTML = rows.map((item) => {
+        const isSending = item.state === 'sending';
+        const stateHtml = isSending
+          ? '<span class="history-card-state"><span class="history-spinner" aria-hidden="true"></span>送信準備中</span>'
+          : '<span class="history-card-state">送信済み</span>';
+
         return [
-          '<article class="history-card">',
+          '<article class="history-card' + (isSending ? ' is-sending' : '') + '">',
+          '<div class="history-card-head">',
           '<small>#' + item.index + ' ' + item.time + '</small>',
+          stateHtml,
+          '</div>',
           '<p>' + escapeHtml(item.text) + '</p>',
           '</article>'
         ].join('');
       }).join('');
     }
 
-    function addSentHistory(text) {
+    function addSentHistory(text, state) {
       const safeText = normalizeText(text);
-      if (!safeText) return;
+      if (!safeText) return '';
 
-      sentHistory.push({
+      const id = Date.now() + '-' + Math.floor(Math.random() * 1000000);
+      const item = {
+        id: id,
         index: sentHistory.length + 1,
         time: formatHistoryTime(new Date()),
-        text: safeText
-      });
+        text: safeText,
+        state: state || 'sent'
+      };
+
+      sentHistory.push(item);
+      renderSentHistory();
+      return id;
+    }
+
+    function markSentHistoryDone(id) {
+      if (!id) return;
+      const item = sentHistory.find((row) => row.id === id);
+      if (!item) return;
+      item.state = 'sent';
       renderSentHistory();
     }
 
@@ -684,19 +688,6 @@
       };
     }
 
-    function appendVisibleText(text) {
-      const safeText = normalizeText(text);
-      if (!safeText) return;
-      textEl.value = safeText;
-      textEl.scrollTop = textEl.scrollHeight;
-    }
-
-    function updatePendingView() {
-      pendingEl.textContent = pendingText
-        ? 'GAS側で確定待ち: ' + pendingText
-        : 'GAS側で3つ分たまると授業ログとして確定します。';
-    }
-
     function scheduleSilenceFlush() {
       clearTimeout(silenceTimer);
       clearTimeout(idleFlushTimer);
@@ -714,13 +705,8 @@
       const safeText = prepareSpeechTextForLessonChunk(text);
       if (!safeText) return;
 
-      pendingText = safeText;
-      updatePendingView();
-      sendLessonText(safeText, false);
-      addSentHistory(safeText);
-      pendingText = '';
-      textEl.value = '';
-      updatePendingView();
+      const historyId = addSentHistory(safeText, 'sending');
+      sendLessonText(safeText, false, historyId);
       scheduleSilenceFlush();
     }
 
@@ -729,14 +715,12 @@
         return;
       }
 
-      pendingText = '';
-      updatePendingView();
       clearTimeout(silenceTimer);
       clearTimeout(idleFlushTimer);
-      sendLessonText('', true);
+      sendLessonText('', true, '');
     }
 
-    function sendLessonText(text, force) {
+    function sendLessonText(text, force, historyId) {
       const body = new URLSearchParams();
       body.set('action', 'appendLessonMicLog');
       body.set('roomId', roomId);
@@ -761,7 +745,10 @@
       if (text) {
         sentCount += 1;
         sentCountEl.textContent = sentCount + '件';
-        setStatus('GASへ送りました。3つ分で授業ログに確定します。', false);
+        setStatus('送信しました。3つ分で授業ログに確定します。', false);
+        setTimeout(() => {
+          markSentHistoryDone(historyId);
+        }, 900);
       } else if (force) {
         setStatus('残りの音声を授業ログに確定します。', false);
       }
@@ -785,7 +772,6 @@
         for (let i = event.resultIndex; i < event.results.length; i += 1) {
           if (!event.results[i].isFinal) continue;
           const transcript = prepareSpeechTextForLessonChunk(event.results[i][0].transcript);
-          appendVisibleText(transcript);
           addPendingText(transcript);
         }
       };
