@@ -444,14 +444,14 @@
 
     function updatePendingView() {
       pendingEl.textContent = pendingText
-        ? '送信待ち: ' + pendingText
-        : '送信待ちの内容はありません。';
+        ? 'GAS側で確定待ち: ' + pendingText
+        : 'GAS側で3つ分たまると授業ログとして確定します。';
     }
 
     function scheduleSilenceFlush() {
       clearTimeout(silenceTimer);
       silenceTimer = setTimeout(() => {
-        flushPendingText(false);
+        flushPendingText(true);
       }, LESSON_MIC_SILENCE_MS);
     }
 
@@ -459,34 +459,22 @@
       const safeText = prepareSpeechTextForLessonChunk(text);
       if (!safeText) return;
 
-      pendingText = normalizeText(pendingText + safeText);
+      pendingText = normalizeText((pendingText ? pendingText + ' / ' : '') + safeText);
       updatePendingView();
-
-      while (countLessonSentences(pendingText) >= LESSON_MIC_CHUNK_SENTENCE_COUNT) {
-        const picked = takeLessonSentenceChunk(pendingText, LESSON_MIC_CHUNK_SENTENCE_COUNT);
-        if (!picked.chunk) break;
-        pendingText = picked.rest;
-        sendLessonText(picked.chunk, false);
-      }
-
+      sendLessonText(safeText, false);
       updatePendingView();
       scheduleSilenceFlush();
     }
 
     function flushPendingText(force) {
-      const text = normalizeText(pendingText);
-      if (!text || text.length < LESSON_MIC_MIN_CHARS) return;
-
-      if (!force && countLessonSentences(text) < LESSON_MIC_CHUNK_SENTENCE_COUNT) {
-        setStatus('3文たまるまで送信を待っています。授業を続けてください。', false);
-        scheduleSilenceFlush();
+      if (!force) {
         return;
       }
 
       pendingText = '';
       updatePendingView();
       clearTimeout(silenceTimer);
-      sendLessonText(text, force);
+      sendLessonText('', true);
     }
 
     function sendLessonText(text, force) {
@@ -499,18 +487,25 @@
       body.set('jaText', text);
       body.set('force', force ? '1' : '0');
 
+      if (!text && !force) return;
+
       fetch(GAS_WEB_APP_URL, {
         method: 'POST',
         mode: 'no-cors',
+        keepalive: true,
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8'
         },
         body
       });
 
-      sentCount += 1;
-      sentCountEl.textContent = sentCount + '件';
-      setStatus('送信しました。音声入力を続けています。', false);
+      if (text) {
+        sentCount += 1;
+        sentCountEl.textContent = sentCount + '件';
+        setStatus('GASへ送りました。3つ分で授業ログに確定します。', false);
+      } else if (force) {
+        setStatus('残りの音声を授業ログに確定します。', false);
+      }
     }
 
     function createRecognition() {
