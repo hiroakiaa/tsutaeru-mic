@@ -4,11 +4,12 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>つたえる君 外部マイク</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
   <style>
     :root {
-      --bg: #020807;
-      --panel: #061411;
-      --panel-soft: #09231d;
+      --bg: #010605;
+      --panel: #010605;
+      --panel-soft: #010605;
       --text: #f7fffc;
       --muted: #a9c8bf;
       --main: #28d7c3;
@@ -17,7 +18,7 @@
       --line-strong: #28d7c3;
       --accent: #8fb3ff;
       --danger: #ff7890;
-      --shadow: 0 22px 80px rgba(0, 0, 0, 0.46);
+      --shadow: none;
       --page-padding: 16px;
       --mobile-browser-space: 0px;
     }
@@ -32,9 +33,7 @@
       min-height: 100dvh;
       height: 100vh;
       height: 100dvh;
-      background: radial-gradient(circle at 14% 0%, rgba(40, 215, 195, 0.18), transparent 30%),
-        radial-gradient(circle at 90% 18%, rgba(143, 179, 255, 0.14), transparent 34%),
-        var(--bg);
+      background: var(--bg);
       color: var(--text);
       font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       padding: var(--page-padding);
@@ -44,8 +43,8 @@
 
     main {
       display: grid;
-      grid-template-rows: minmax(0, 1fr) auto;
-      gap: 14px;
+      grid-template-rows: minmax(0, 1fr);
+      gap: 0;
       width: min(1200px, 100%);
       height: 100%;
       margin: 0 auto;
@@ -64,20 +63,22 @@
       flex: 1 1 auto;
       max-width: none;
       min-height: 36px;
-      border-radius: 999px;
-      background: rgba(9, 35, 29, 0.94);
+      border-radius: 0;
+      background: var(--bg);
       color: var(--main);
-      border: 1px solid var(--line);
-      padding: 7px 12px;
+      border: 0;
+      border-bottom: 1px solid var(--line);
+      padding: 8px 0;
       font-weight: 800;
       margin: 0;
-      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.34);
+      box-shadow: none;
       line-height: 1.5;
     }
 
     .status.is-error {
-      background: rgba(60, 12, 22, 0.96);
+      background: var(--bg);
       color: var(--danger);
+      border-bottom-color: rgba(255, 120, 144, 0.62);
     }
 
     .controls {
@@ -145,28 +146,30 @@
     }
 
     .history {
-      border: 1px solid var(--line);
-      border-radius: 24px;
-      background: rgba(6, 20, 17, 0.82);
+      display: flex;
+      flex-direction: column;
+      border: 0;
+      border-radius: 0;
+      background: var(--bg);
       box-shadow: var(--shadow);
-      padding: 16px;
+      padding: 8px 0 0;
       min-height: 0;
       overflow: hidden;
     }
 
     .history-head {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
+      display: grid;
+      grid-template-columns: 1fr;
       gap: 12px;
-      flex-wrap: wrap;
-      margin-bottom: 12px;
+      margin-bottom: 14px;
+      flex: 0 0 auto;
     }
 
     .history-actions {
       display: flex;
       gap: 8px;
       flex-wrap: wrap;
+      justify-content: flex-end;
     }
 
     .history-actions button {
@@ -178,9 +181,11 @@
       display: grid;
       gap: 10px;
       align-content: start;
-      max-height: calc(100% - 52px);
+      flex: 1 1 auto;
+      max-height: none;
       overflow: auto;
       padding-right: 4px;
+      padding-bottom: 4px;
     }
 
     .history-empty {
@@ -192,7 +197,7 @@
     .history-card {
       border: 1px solid var(--line);
       border-radius: 16px;
-      background: rgba(2, 8, 7, 0.82);
+      background: #010605;
       padding: 12px 14px;
     }
 
@@ -258,11 +263,11 @@
       display: flex;
       align-items: center;
       gap: 12px;
-      border: 1px solid var(--line);
-      border-radius: 22px;
-      background: rgba(6, 20, 17, 0.86);
-      box-shadow: var(--shadow);
-      padding: 12px 14px;
+      border: 0;
+      border-radius: 0;
+      background: var(--bg);
+      box-shadow: none;
+      padding: 0;
     }
 
     .mic-toggle {
@@ -277,6 +282,11 @@
       font-size: 1.34rem;
     }
 
+    .mic-toggle i {
+      font-size: 1.45em;
+      line-height: 1;
+    }
+
     .mic-toggle.is-running {
       background: var(--danger);
       color: #fff;
@@ -286,7 +296,7 @@
     @media (max-width: 640px) {
       :root {
         --page-padding: 10px;
-        --mobile-browser-space: 86px;
+        --mobile-browser-space: 0px;
       }
 
       body {
@@ -294,7 +304,7 @@
       }
 
       main {
-        gap: 10px;
+        gap: 0;
       }
 
       button {
@@ -302,7 +312,6 @@
       }
 
       .history-head {
-        align-items: stretch;
         gap: 10px;
       }
 
@@ -317,17 +326,25 @@
 
       .history-actions {
         display: grid;
-        grid-template-columns: 1fr 1fr;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        justify-content: center;
+        justify-items: stretch;
+        width: min(100%, 520px);
+        margin: 0 auto;
+      }
+
+      .history-actions button {
+        width: 100%;
+        text-align: center;
       }
 
       .history {
-        padding: 12px;
+        padding: 4px 0 0;
       }
 
       .input-area {
-        padding: 8px 10px;
+        padding: 0;
         gap: 8px;
-        border-radius: 18px;
       }
 
       .status {
@@ -349,11 +366,7 @@
 
     @media (max-width: 420px) {
       :root {
-        --mobile-browser-space: 96px;
-      }
-
-      .history {
-        border-radius: 20px;
+        --mobile-browser-space: 0px;
       }
 
       .history-actions button {
@@ -385,21 +398,20 @@
             <strong id="sent-count-label">0件</strong>
           </div>
         </div>
+        <section class="input-area" aria-label="音声入力">
+          <div class="status" id="status">停止中</div>
+          <button class="main-button mic-toggle" type="button" id="start-button" aria-label="マイク開始">
+            <i class="fa-solid fa-microphone" aria-hidden="true"></i>
+          </button>
+        </section>
         <div class="history-actions">
           <button class="sub-button" type="button" id="history-oldest-button">最初から並べる</button>
           <button class="sub-button is-active" type="button" id="history-newest-button">最新文から並べる</button>
         </div>
       </div>
       <div class="history-list" id="history-list">
-        <p class="history-empty">まだ送信した文はありません。</p>
+        <p class="history-empty">右下のマイクボタンを押して話すと、ここに文が入り、アプリ側に送信されます。</p>
       </div>
-    </section>
-
-    <section class="input-area" aria-label="音声入力">
-      <div class="status" id="status">停止中</div>
-      <button class="main-button mic-toggle" type="button" id="start-button" aria-label="マイク開始">
-        <span aria-hidden="true">🎙</span>
-      </button>
     </section>
   </main>
 
@@ -584,7 +596,7 @@
       historyNewestButton.classList.toggle('is-active', historyOrder === 'newest');
 
       if (!rows.length) {
-        historyListEl.innerHTML = '<p class="history-empty">マイク開始を押して話すと、ここに送信した文が残ります。</p>';
+        historyListEl.innerHTML = '<p class="history-empty">右下のマイクボタンを押して話すと、ここに文が入り、アプリ側に送信されます。</p>';
         return;
       }
 
@@ -809,7 +821,7 @@
         running = true;
         startButton.classList.add('is-running');
         startButton.setAttribute('aria-label', '停止');
-        startButton.innerHTML = '<span aria-hidden="true">■</span>';
+        startButton.innerHTML = '<i class="fa-solid fa-stop" aria-hidden="true"></i>';
         setStatus('マイク入力中です。', false);
       };
 
@@ -837,7 +849,7 @@
               startButton.disabled = false;
               startButton.classList.remove('is-running');
               startButton.setAttribute('aria-label', 'マイク開始');
-              startButton.innerHTML = '<span aria-hidden="true">🎙</span>';
+              startButton.innerHTML = '<i class="fa-solid fa-microphone" aria-hidden="true"></i>';
             }
           }, 400);
           return;
@@ -846,7 +858,7 @@
         startButton.disabled = false;
         startButton.classList.remove('is-running');
         startButton.setAttribute('aria-label', 'マイク開始');
-        startButton.innerHTML = '<span aria-hidden="true">🎙</span>';
+        startButton.innerHTML = '<i class="fa-solid fa-microphone" aria-hidden="true"></i>';
         setStatus('停止中', false);
       };
 
