@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>つたえる君 外部マイク</title>
   <style>
     :root {
@@ -18,6 +18,8 @@
       --accent: #8fb3ff;
       --danger: #ff7890;
       --shadow: 0 22px 80px rgba(0, 0, 0, 0.46);
+      --page-padding: 16px;
+      --mobile-browser-space: 0px;
     }
 
     * {
@@ -27,12 +29,16 @@
     body {
       margin: 0;
       min-height: 100vh;
+      min-height: 100dvh;
+      height: 100vh;
+      height: 100dvh;
       background: radial-gradient(circle at 14% 0%, rgba(40, 215, 195, 0.18), transparent 30%),
         radial-gradient(circle at 90% 18%, rgba(143, 179, 255, 0.14), transparent 34%),
         var(--bg);
       color: var(--text);
       font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      padding: 16px;
+      padding: var(--page-padding);
+      padding-bottom: calc(var(--page-padding) + var(--mobile-browser-space) + env(safe-area-inset-bottom));
       overflow: hidden;
     }
 
@@ -41,7 +47,7 @@
       grid-template-rows: minmax(0, 1fr) auto;
       gap: 14px;
       width: min(1200px, 100%);
-      height: calc(100vh - 32px);
+      height: 100%;
       margin: 0 auto;
       background: transparent;
     }
@@ -118,17 +124,20 @@
     }
 
     .meta div {
-      border: 1px solid var(--line);
-      border-radius: 999px;
-      padding: 7px 11px;
-      background: rgba(6, 20, 17, 0.88);
+      display: inline-flex;
+      align-items: baseline;
+      gap: 6px;
+      border: 0;
+      border-radius: 0;
+      padding: 0 4px 0 0;
+      background: transparent;
     }
 
     .meta small {
       display: inline;
       color: var(--muted);
       font-weight: 700;
-      margin-right: 6px;
+      margin-right: 0;
     }
 
     .meta strong {
@@ -275,12 +284,16 @@
     }
 
     @media (max-width: 640px) {
+      :root {
+        --page-padding: 10px;
+        --mobile-browser-space: 86px;
+      }
+
       body {
-        padding: 10px;
+        overflow: hidden;
       }
 
       main {
-        height: calc(100vh - 20px);
         gap: 10px;
       }
 
@@ -290,6 +303,16 @@
 
       .history-head {
         align-items: stretch;
+        gap: 10px;
+      }
+
+      .meta {
+        gap: 10px;
+        font-size: 0.92rem;
+      }
+
+      .meta div {
+        padding: 0;
       }
 
       .history-actions {
@@ -302,22 +325,44 @@
       }
 
       .input-area {
-        padding: 10px;
+        padding: 8px 10px;
         gap: 8px;
+        border-radius: 18px;
       }
 
       .status {
-        min-height: 44px;
-        font-size: 0.92rem;
+        min-height: 40px;
+        font-size: 0.86rem;
+        padding: 7px 10px;
       }
 
       .mic-toggle {
-        width: 54px;
-        height: 54px;
+        width: 48px;
+        height: 48px;
+        font-size: 1.12rem;
       }
 
       .input-area .mic-toggle {
-        width: 54px;
+        width: 48px;
+      }
+    }
+
+    @media (max-width: 420px) {
+      :root {
+        --mobile-browser-space: 96px;
+      }
+
+      .history {
+        border-radius: 20px;
+      }
+
+      .history-actions button {
+        padding: 9px 10px;
+        font-size: 0.84rem;
+      }
+
+      .history-empty {
+        font-size: 0.92rem;
       }
     }
   </style>
