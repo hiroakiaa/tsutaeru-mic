@@ -198,7 +198,7 @@
 
   <script>
     const GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzBSH540vZK4G62twUfsketq9Pi2RZFocmfcNFwdEVV-IPqHH1Izb0VAFW_SRtN4nbf/exec';
-    const LESSON_MIC_SILENCE_MS = 4500;
+    const LESSON_MIC_IDLE_STATUS_MS = 4500;
     const LESSON_MIC_CHUNK_SENTENCE_COUNT = 3;
     const LESSON_MIC_MIN_CHARS = 2;
     const KOTOBA_MIC_CORRECTIONS = [
@@ -242,6 +242,11 @@
       [/問の子/g, '問いの5'],
       [/土肥の/g, '問いの'],
       [/問いの子/g, '問いの5'],
+      [/トイレの([0-9０-９]+)/g, '問いの$1'],
+      [/トイレ/g, '問い'],
+      [/遠いのに/g, '問いの2'],
+      [/遠いの([0-9０-９]+)/g, '問いの$1'],
+      [/遠いの/g, '問いの'],
       [/問題の一/g, '問題の1'],
       [/問題の二/g, '問題の2'],
       [/問題の三/g, '問題の3'],
@@ -311,7 +316,9 @@
       [/√\s*([0-9０-９]+)\s*は二乗して/g, '√$1は2乗して'],
       [/因数分解\s+1つは/g, '因数分解。1つは'],
       [/仕方1つは/g, '仕方。1つは'],
-      [/場合の対応の仕方1つは/g, '場合の対応の仕方。1つは']
+      [/場合の対応の仕方1つは/g, '場合の対応の仕方。1つは'],
+      [/何個あげる/g, '何個挙げる'],
+      [/何個あげられる/g, '何個挙げられる']
     ];
 
     const params = new URLSearchParams(location.search);
@@ -451,8 +458,8 @@
     function scheduleSilenceFlush() {
       clearTimeout(silenceTimer);
       silenceTimer = setTimeout(() => {
-        flushPendingText(true);
-      }, LESSON_MIC_SILENCE_MS);
+        setStatus('音声入力中です。3つ分たまると授業ログに確定します。', false);
+      }, LESSON_MIC_IDLE_STATUS_MS);
     }
 
     function addPendingText(text) {
