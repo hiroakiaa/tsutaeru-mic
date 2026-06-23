@@ -3,17 +3,17 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>つたえる君 マイク入力ページ</title>
+  <title>つたえる君 外部マイク</title>
   <style>
     :root {
-      --bg: #f4fff8;
+      --bg: #f3fffb;
       --panel: #ffffff;
-      --main: #1db7aa;
-      --main-dark: #138f86;
-      --line: #a8eee7;
-      --text: #173d3a;
-      --muted: #668986;
-      --danger: #d94b63;
+      --text: #153634;
+      --muted: #5f7d78;
+      --main: #20b4a6;
+      --main-dark: #0f8f85;
+      --line: #a8ede4;
+      --danger: #d84d61;
     }
 
     * {
@@ -22,535 +22,377 @@
 
     body {
       margin: 0;
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      background: linear-gradient(180deg, #eafff8 0%, #f7fff4 100%);
+      min-height: 100vh;
+      background: linear-gradient(135deg, #eafff7, #f7fbff);
       color: var(--text);
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      padding: 24px;
     }
 
-    .app {
-      width: min(960px, calc(100% - 24px));
-      margin: 20px auto;
-    }
-
-    .header {
-      display: flex;
-      align-items: center;
-      gap: 14px;
-      margin-bottom: 16px;
-    }
-
-    .logo {
-      width: 58px;
-      height: 58px;
-      border-radius: 18px;
-      border: 2px dashed var(--line);
-      display: grid;
-      place-items: center;
-      background: #effffb;
-      color: var(--main-dark);
-      font-size: 30px;
-      font-weight: 900;
+    main {
+      width: min(960px, 100%);
+      margin: 0 auto;
+      background: rgba(255, 255, 255, 0.94);
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      padding: 24px;
+      box-shadow: 0 24px 80px rgba(31, 145, 130, 0.16);
     }
 
     h1 {
-      margin: 0;
-      font-size: clamp(28px, 6vw, 54px);
-      line-height: 1.05;
-      letter-spacing: 0;
+      margin: 0 0 8px;
+      font-size: clamp(1.7rem, 5vw, 3rem);
+      line-height: 1.1;
     }
 
-    .panel {
-      background: rgba(255, 255, 255, 0.94);
-      border: 1px solid var(--line);
-      border-radius: 18px;
-      padding: 18px;
-      box-shadow: 0 18px 40px rgba(19, 143, 134, 0.12);
-    }
-
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 10px;
-      margin-bottom: 14px;
-    }
-
-    label {
-      display: grid;
-      gap: 6px;
-      font-weight: 800;
-      color: var(--text);
-    }
-
-    input,
-    select,
-    textarea {
-      width: 100%;
-      border: 1px solid var(--line);
-      border-radius: 12px;
-      padding: 12px;
-      font: inherit;
-      background: #fff;
-      color: var(--text);
-    }
-
-    textarea {
-      min-height: 260px;
-      resize: vertical;
+    p {
+      color: var(--muted);
       line-height: 1.8;
-      font-size: 20px;
+    }
+
+    .status {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 42px;
+      border-radius: 999px;
+      background: #e8fbf8;
+      color: var(--main-dark);
+      padding: 8px 16px;
+      font-weight: 800;
+      margin: 16px 0;
+    }
+
+    .status.is-error {
+      background: #fff0f3;
+      color: var(--danger);
     }
 
     .controls {
       display: flex;
+      gap: 12px;
       flex-wrap: wrap;
-      gap: 10px;
-      margin: 14px 0;
+      margin: 16px 0 20px;
     }
 
     button {
       border: 0;
       border-radius: 999px;
-      padding: 13px 20px;
-      font: inherit;
-      font-weight: 900;
+      padding: 14px 22px;
+      font-size: 1rem;
+      font-weight: 800;
       cursor: pointer;
     }
 
-    .main {
+    .main-button {
       background: var(--main);
       color: #fff;
+      box-shadow: 0 12px 32px rgba(32, 180, 166, 0.26);
     }
 
-    .sub {
-      background: #eafffb;
+    .sub-button {
+      background: #eefcf9;
       color: var(--main-dark);
       border: 1px solid var(--line);
     }
 
-    .danger {
-      background: #fff0f3;
-      color: var(--danger);
-      border: 1px solid #ffc0cd;
+    button:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
     }
 
-    .status {
-      margin: 10px 0 14px;
-      padding: 12px 14px;
-      border-radius: 12px;
-      background: #effffb;
+    .meta {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+      margin: 18px 0;
+    }
+
+    .meta div {
       border: 1px solid var(--line);
-      font-weight: 800;
-      color: var(--main-dark);
+      border-radius: 16px;
+      padding: 12px;
+      background: #fbfffe;
     }
 
-    .status.error {
-      background: #fff0f3;
-      border-color: #ffc0cd;
-      color: var(--danger);
-    }
-
-    .small {
+    .meta small {
+      display: block;
       color: var(--muted);
-      font-size: 14px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 42vh;
+      resize: vertical;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 16px;
+      font-size: 1.18rem;
+      line-height: 1.9;
+      color: var(--text);
+      background: #fff;
+    }
+
+    .pending {
+      margin-top: 12px;
+      padding: 12px 14px;
+      border: 1px dashed var(--line);
+      border-radius: 16px;
+      color: var(--muted);
+      background: #fbfffe;
       line-height: 1.7;
     }
 
-    .live {
-      display: grid;
-      gap: 10px;
-    }
-
-    .log {
-      margin-top: 14px;
-      display: grid;
-      gap: 8px;
-    }
-
-    .log-item {
-      padding: 10px 12px;
-      border-radius: 12px;
-      border: 1px solid var(--line);
-      background: #fbfffd;
-      color: var(--text);
-      line-height: 1.6;
-    }
-
-    @media (max-width: 760px) {
-      .grid {
-        grid-template-columns: 1fr 1fr;
+    @media (max-width: 640px) {
+      body {
+        padding: 12px;
       }
 
-      .controls button {
-        flex: 1 1 46%;
+      main {
+        padding: 18px;
+        border-radius: 18px;
       }
-    }
 
-    @media (max-width: 520px) {
-      .grid {
+      .meta {
         grid-template-columns: 1fr;
       }
 
-      .controls button {
-        flex-basis: 100%;
+      button {
+        width: 100%;
       }
     }
   </style>
 </head>
 <body>
-  <main class="app">
-    <header class="header">
-      <div class="logo">つ</div>
+  <main>
+    <h1>つたえる君 外部マイク</h1>
+    <p>このページはGoogle Chromeの音声認識を使い、授業の音声を本体アプリへ送ります。マイク開始を押して、授業中はこのタブを開いたままにしてください。</p>
+
+    <div class="meta">
       <div>
-        <h1>つたえる君<br>マイク入力</h1>
-        <p class="small">先生の声を文字にして、授業ログへ送ります。</p>
+        <small>ルームID</small>
+        <strong id="room-id-label">未設定</strong>
       </div>
-    </header>
-
-    <section class="panel">
-      <div class="grid">
-        <label>
-          ルームID
-          <input id="room-id" inputmode="numeric" placeholder="例：1234">
-        </label>
-
-        <label>
-          roomKey
-          <input id="room-key" placeholder="つたえる君から自動で入ります">
-        </label>
-
-        <label>
-          sessionId
-          <input id="session-id" placeholder="つたえる君から自動で入ります">
-        </label>
-
-        <label>
-          教科
-          <select id="subject">
-            <option value="math">数学</option>
-            <option value="japanese">国語</option>
-            <option value="science">理科</option>
-            <option value="social">社会</option>
-            <option value="english">英語</option>
-            <option value="common">共通</option>
-          </select>
-        </label>
+      <div>
+        <small>教科</small>
+        <strong id="subject-label">math</strong>
       </div>
-
-      <div class="controls">
-        <button class="main" id="start-button" type="button">マイク開始</button>
-        <button class="sub" id="pause-button" type="button">一時停止</button>
-        <button class="danger" id="stop-button" type="button">停止</button>
-        <button class="sub" id="send-now-button" type="button">残りを送信</button>
-        <button class="sub" id="clear-button" type="button">画面を消す</button>
+      <div>
+        <small>送信</small>
+        <strong id="sent-count-label">0件</strong>
       </div>
+    </div>
 
-      <div class="status" id="status">停止中</div>
+    <div class="controls">
+      <button class="main-button" type="button" id="start-button">マイク開始</button>
+      <button class="sub-button" type="button" id="stop-button" disabled>停止</button>
+      <button class="sub-button" type="button" id="flush-button">今の内容を送信</button>
+    </div>
 
-      <div class="live">
-        <textarea id="text" placeholder="ここに音声認識された文章が入ります。3文ごとに自動で授業ログへ送ります。"></textarea>
-      </div>
-
-      <p class="small">
-        つたえる君本体から開いた場合は、ルームID、roomKey、sessionIdが自動で入ります。
-        直接開いた場合は、roomKeyとsessionIdが空のため、GAS側で保存されません。
-      </p>
-
-      <div class="log" id="send-log"></div>
-    </section>
+    <div class="status" id="status">停止中</div>
+    <textarea id="text" placeholder="ここに音声認識された内容が入ります。"></textarea>
+    <div class="pending" id="pending">送信待ちの内容はありません。</div>
   </main>
 
   <script>
     const GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzBSH540vZK4G62twUfsketq9Pi2RZFocmfcNFwdEVV-IPqHH1Izb0VAFW_SRtN4nbf/exec';
-
-    const LESSON_SENTENCE_COUNT = 3;
-    const SILENCE_FLUSH_MS = 3000;
-
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const LESSON_MIC_SILENCE_MS = 4500;
+    const LESSON_MIC_CHUNK_PHRASE_COUNT = 3;
+    const LESSON_MIC_MIN_CHARS = 2;
 
     const params = new URLSearchParams(location.search);
+    const roomId = params.get('roomId') || '';
+    const roomKey = params.get('roomKey') || '';
+    const sessionId = params.get('sessionId') || '';
+    const subject = params.get('subject') || 'math';
 
-    const roomIdInput = document.getElementById('room-id');
-    const roomKeyInput = document.getElementById('room-key');
-    const sessionIdInput = document.getElementById('session-id');
-    const subjectInput = document.getElementById('subject');
-    const textArea = document.getElementById('text');
-    const statusBox = document.getElementById('status');
-    const sendLog = document.getElementById('send-log');
-
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     const startButton = document.getElementById('start-button');
-    const pauseButton = document.getElementById('pause-button');
     const stopButton = document.getElementById('stop-button');
-    const sendNowButton = document.getElementById('send-now-button');
-    const clearButton = document.getElementById('clear-button');
+    const flushButton = document.getElementById('flush-button');
+    const statusEl = document.getElementById('status');
+    const textEl = document.getElementById('text');
+    const pendingEl = document.getElementById('pending');
+    const sentCountEl = document.getElementById('sent-count-label');
 
     let recognition = null;
-    let isRunning = false;
-    let isPaused = false;
+    let running = false;
     let pendingText = '';
+    let pendingPhraseCount = 0;
     let silenceTimer = 0;
-    let lastSentText = '';
+    let sentCount = 0;
 
-    roomIdInput.value = params.get('roomId') || '';
-    roomKeyInput.value = params.get('roomKey') || '';
-    sessionIdInput.value = params.get('sessionId') || '';
-    subjectInput.value = params.get('subject') || 'math';
+    document.getElementById('room-id-label').textContent = roomId || '未設定';
+    document.getElementById('subject-label').textContent = subject;
 
     function setStatus(message, isError) {
-      statusBox.textContent = message;
-      statusBox.classList.toggle('error', Boolean(isError));
+      statusEl.textContent = message;
+      statusEl.classList.toggle('is-error', Boolean(isError));
     }
 
-    function addSendLog(message) {
-      const item = document.createElement('div');
-      item.className = 'log-item';
-      item.textContent = message;
-      sendLog.prepend(item);
-    }
-
-    function normalizeText(text) {
-      return String(text || '')
+    function normalizeText(value) {
+      return String(value || '')
+        .replace(/[\u00a0\u3000]/g, ' ')
         .replace(/\s+/g, ' ')
-        .replace(/([。！？!?])\s+/g, '$1')
+        .replace(/([ぁ-んァ-ヶ一-龠々ー])\s+(?=[ぁ-んァ-ヶ一-龠々ー])/g, '$1')
         .trim();
     }
 
-    function splitSentences(text) {
+    function appendVisibleText(text) {
       const safeText = normalizeText(text);
-      if (!safeText) return [];
-
-      const matches = safeText.match(/[^。！？!?]+[。！？!?]?/g);
-      return (matches || [safeText])
-        .map(part => normalizeText(part))
-        .filter(Boolean);
+      if (!safeText) return;
+      textEl.value = normalizeText((textEl.value ? textEl.value + '\n' : '') + safeText);
+      textEl.scrollTop = textEl.scrollHeight;
     }
 
-    function takeSentenceChunk(force) {
-      const sentences = splitSentences(pendingText);
-
-      if (!sentences.length) return '';
-
-      if (!force && sentences.length < LESSON_SENTENCE_COUNT) {
-        return '';
-      }
-
-      const takeCount = force
-        ? sentences.length
-        : LESSON_SENTENCE_COUNT;
-
-      const chunk = sentences.slice(0, takeCount).join('');
-      const rest = sentences.slice(takeCount).join('');
-
-      pendingText = normalizeText(rest);
-      return normalizeText(chunk);
+    function updatePendingView() {
+      pendingEl.textContent = pendingText
+        ? '送信待ち: ' + pendingText
+        : '送信待ちの内容はありません。';
     }
 
     function scheduleSilenceFlush() {
-      window.clearTimeout(silenceTimer);
-      silenceTimer = window.setTimeout(function () {
+      clearTimeout(silenceTimer);
+      silenceTimer = setTimeout(() => {
         flushPendingText(true);
-      }, SILENCE_FLUSH_MS);
+      }, LESSON_MIC_SILENCE_MS);
     }
 
-    function appendRecognizedText(text) {
+    function addPendingText(text) {
       const safeText = normalizeText(text);
       if (!safeText) return;
 
-      textArea.value += (textArea.value ? '\n' : '') + safeText;
-      pendingText = normalizeText((pendingText ? pendingText + ' ' : '') + safeText);
+      pendingText = normalizeText(pendingText + safeText);
+      pendingPhraseCount += 1;
+      updatePendingView();
 
-      flushPendingText(false);
-      scheduleSilenceFlush();
+      if (pendingPhraseCount >= LESSON_MIC_CHUNK_PHRASE_COUNT) {
+        flushPendingText(false);
+      } else {
+        scheduleSilenceFlush();
+      }
     }
 
     function flushPendingText(force) {
-      let guard = 0;
+      const text = normalizeText(pendingText);
+      if (!text || text.length < LESSON_MIC_MIN_CHARS) return;
 
-      while (guard < 10) {
-        const chunk = takeSentenceChunk(Boolean(force));
-
-        if (!chunk) break;
-        if (chunk.length < 2) break;
-
-        sendToGas(chunk);
-        guard += 1;
-
-        if (force) break;
-      }
+      pendingText = '';
+      pendingPhraseCount = 0;
+      updatePendingView();
+      clearTimeout(silenceTimer);
+      sendLessonText(text, force);
     }
 
-    function sendToGas(text) {
-      const roomId = roomIdInput.value.trim();
-      const roomKey = roomKeyInput.value.trim();
-      const sessionId = sessionIdInput.value.trim();
-      const subject = subjectInput.value.trim() || 'math';
-      const safeText = normalizeText(text);
-
-      if (!safeText) return;
-
-      if (safeText === lastSentText) {
-        addSendLog('重複のため送信しませんでした：' + safeText);
-        return;
-      }
-
-      if (!roomId || !roomKey || !sessionId) {
-        addSendLog('未送信：roomId / roomKey / sessionId が足りません。');
-        return;
-      }
-
-      lastSentText = safeText;
-
+    function sendLessonText(text, force) {
       const body = new URLSearchParams();
-      body.append('action', 'appendLessonMicLog');
-      body.append('roomId', roomId);
-      body.append('roomKey', roomKey);
-      body.append('sessionId', sessionId);
-      body.append('subject', subject);
-      body.append('jaText', safeText);
+      body.set('action', 'appendLessonMicLog');
+      body.set('roomId', roomId);
+      body.set('roomKey', roomKey);
+      body.set('sessionId', sessionId);
+      body.set('subject', subject);
+      body.set('jaText', text);
+      body.set('force', force ? '1' : '0');
 
       fetch(GAS_WEB_APP_URL, {
         method: 'POST',
         mode: 'no-cors',
         headers: {
-          'Content-Type': 'application/x-www-form-urlencoded'
+          'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8'
         },
         body
-      }).then(function () {
-        addSendLog('送信しました：' + safeText);
-      }).catch(function () {
-        addSendLog('送信に失敗しました：' + safeText);
       });
+
+      sentCount += 1;
+      sentCountEl.textContent = sentCount + '件';
+      setStatus('送信しました。音声入力を続けています。', false);
     }
 
-    function setupRecognition() {
-      if (!SpeechRecognition) {
-        setStatus('このブラウザは音声認識に対応していません。Chromeで開いてください。', true);
-        return null;
-      }
-
+    function createRecognition() {
       const rec = new SpeechRecognition();
       rec.lang = 'ja-JP';
       rec.continuous = true;
       rec.interimResults = false;
 
-      rec.onstart = function () {
-        isRunning = true;
-        setStatus('マイク入力中です。普通に話してください。', false);
+      rec.onstart = () => {
+        running = true;
+        startButton.disabled = true;
+        stopButton.disabled = false;
+        setStatus('マイク入力中です。', false);
       };
 
-      rec.onresult = function (event) {
-        let transcript = '';
-
-        for (let i = event.resultIndex; i < event.results.length; i++) {
-          if (event.results[i].isFinal) {
-            transcript += event.results[i][0].transcript;
-          }
-        }
-
-        if (transcript) {
-          appendRecognizedText(transcript);
+      rec.onresult = (event) => {
+        for (let i = event.resultIndex; i < event.results.length; i += 1) {
+          if (!event.results[i].isFinal) continue;
+          const transcript = normalizeText(event.results[i][0].transcript);
+          appendVisibleText(transcript);
+          addPendingText(transcript);
         }
       };
 
-      rec.onerror = function (event) {
-        if (event.error === 'no-speech') return;
-        setStatus('音声入力で問題が起きました：' + event.error, true);
+      rec.onerror = (event) => {
+        setStatus('音声認識で問題が起きました: ' + (event.error || 'unknown'), true);
       };
 
-      rec.onend = function () {
-        if (isRunning && !isPaused) {
-          try {
-            rec.start();
-          } catch (error) {
-            window.setTimeout(function () {
-              if (!isRunning || isPaused) return;
-              try {
-                rec.start();
-              } catch (retryError) {
-                setStatus('マイクの再開に失敗しました。もう一度「マイク開始」を押してください。', true);
-              }
-            }, 500);
-          }
+      rec.onend = () => {
+        const shouldRestart = running;
+        if (shouldRestart) {
+          setTimeout(() => {
+            try {
+              rec.start();
+            } catch (error) {
+              setStatus('マイクの再開に失敗しました。もう一度マイク開始を押してください。', true);
+              running = false;
+              startButton.disabled = false;
+              stopButton.disabled = true;
+            }
+          }, 400);
           return;
         }
 
+        startButton.disabled = false;
+        stopButton.disabled = true;
         setStatus('停止中', false);
       };
 
       return rec;
     }
 
-    startButton.addEventListener('click', function () {
-      if (!recognition) {
-        recognition = setupRecognition();
+    startButton.addEventListener('click', () => {
+      if (!SpeechRecognition) {
+        setStatus('このブラウザは音声認識に対応していません。Google Chromeで開いてください。', true);
+        return;
       }
 
-      if (!recognition) return;
+      if (!roomId || !roomKey || !sessionId) {
+        setStatus('ルーム情報がありません。本体アプリの授業モードから開いてください。', true);
+        return;
+      }
 
-      isPaused = false;
-      isRunning = true;
+      recognition = recognition || createRecognition();
 
       try {
         recognition.start();
       } catch (error) {
-        setStatus('すでにマイク入力中、または開始できませんでした。', true);
+        setStatus('マイクを開始できませんでした。ページを再読み込みしてもう一度試してください。', true);
       }
     });
 
-    pauseButton.addEventListener('click', function () {
-      if (!recognition) return;
-
-      isPaused = !isPaused;
-
-      if (isPaused) {
-        try {
-          recognition.stop();
-        } catch (error) {
-          // 停止補助なので失敗しても続けます。
-        }
-        flushPendingText(true);
-        setStatus('一時停止中です。', false);
-        pauseButton.textContent = '再開';
-      } else {
-        pauseButton.textContent = '一時停止';
-        try {
-          recognition.start();
-        } catch (error) {
-          setStatus('再開できませんでした。もう一度押してください。', true);
-        }
-      }
-    });
-
-    stopButton.addEventListener('click', function () {
-      isRunning = false;
-      isPaused = false;
-      pauseButton.textContent = '一時停止';
-      window.clearTimeout(silenceTimer);
+    stopButton.addEventListener('click', () => {
+      running = false;
       flushPendingText(true);
-
-      if (recognition) {
-        try {
-          recognition.stop();
-        } catch (error) {
-          // 停止補助なので失敗しても続けます。
-        }
-      }
-
-      setStatus('停止中', false);
+      if (recognition) recognition.stop();
     });
 
-    sendNowButton.addEventListener('click', function () {
+    flushButton.addEventListener('click', () => {
       flushPendingText(true);
     });
 
-    clearButton.addEventListener('click', function () {
-      textArea.value = '';
-      sendLog.innerHTML = '';
-      pendingText = '';
-      lastSentText = '';
-      setStatus('画面を消しました。', false);
+    window.addEventListener('beforeunload', () => {
+      flushPendingText(true);
     });
-
-    setStatus('停止中', false);
   </script>
 </body>
 </html>
