@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>つたえる君 マイク入力</title>
+</head>
+<body>
+  <h1>つたえる君 マイク入力ページ</h1>
+  <button id="start">マイク開始</button>
+  <button id="stop">停止</button>
+  <p id="status">待機中</p>
+  <textarea id="text" rows="10" style="width:100%;"></textarea>
+
+  <script>
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const recognition = SpeechRecognition ? new SpeechRecognition() : null;
+
+    if (!recognition) {
+      document.getElementById('status').textContent = 'このブラウザは音声認識に対応していません。Chromeで開いてください。';
+    } else {
+      recognition.lang = 'ja-JP';
+      recognition.continuous = true;
+      recognition.interimResults = false;
+
+      recognition.onresult = function(event) {
+        let text = '';
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          if (event.results[i].isFinal) {
+            text += event.results[i][0].transcript;
+          }
+        }
+        if (text) {
+          document.getElementById('text').value += text + '\n';
+        }
+      };
+
+      recognition.onstart = function() {
+        document.getElementById('status').textContent = 'マイク入力中';
+      };
+
+      recognition.onerror = function(event) {
+        document.getElementById('status').textContent = 'エラー: ' + event.error;
+      };
+
+      recognition.onend = function() {
+        document.getElementById('status').textContent = '停止中';
+      };
+
+      document.getElementById('start').onclick = function() {
+        recognition.start();
+      };
+
+      document.getElementById('stop').onclick = function() {
+        recognition.stop();
+      };
+    }
+  </script>
+</body>
+</html>
