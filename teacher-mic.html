@@ -172,6 +172,10 @@
       justify-content: flex-end;
     }
 
+    .history-actions[hidden] {
+      display: none !important;
+    }
+
     .history-actions button {
       padding: 10px 14px;
       font-size: 0.9rem;
@@ -404,13 +408,13 @@
             <i class="fa-solid fa-microphone" aria-hidden="true"></i>
           </button>
         </section>
-        <div class="history-actions">
+        <div class="history-actions" id="history-actions" hidden>
           <button class="sub-button" type="button" id="history-oldest-button">最初から並べる</button>
           <button class="sub-button is-active" type="button" id="history-newest-button">最新文から並べる</button>
         </div>
       </div>
       <div class="history-list" id="history-list">
-        <p class="history-empty">右下のマイクボタンを押して話すと、ここに文が入り、アプリ側に送信されます。</p>
+        <p class="history-empty">右のマイクボタンを押してから話すと、下に文が入ります。その後、アプリ側に送信されて、生徒側に表示されます。</p>
       </div>
     </section>
   </main>
@@ -560,6 +564,7 @@
     const statusEl = document.getElementById('status');
     const sentCountEl = document.getElementById('sent-count-label');
     const historyListEl = document.getElementById('history-list');
+    const historyActionsEl = document.getElementById('history-actions');
     const historyOldestButton = document.getElementById('history-oldest-button');
     const historyNewestButton = document.getElementById('history-newest-button');
 
@@ -596,7 +601,7 @@
       historyNewestButton.classList.toggle('is-active', historyOrder === 'newest');
 
       if (!rows.length) {
-        historyListEl.innerHTML = '<p class="history-empty">右下のマイクボタンを押して話すと、ここに文が入り、アプリ側に送信されます。</p>';
+        historyListEl.innerHTML = '<p class="history-empty">右のマイクボタンを押してから話すと、下に文が入ります。その後、アプリ側に送信されて、生徒側に表示されます。</p>';
         return;
       }
 
@@ -822,6 +827,7 @@
         startButton.classList.add('is-running');
         startButton.setAttribute('aria-label', '停止');
         startButton.innerHTML = '<i class="fa-solid fa-stop" aria-hidden="true"></i>';
+        historyActionsEl.hidden = false;
         setStatus('マイク入力中です。', false);
       };
 
