@@ -134,6 +134,14 @@
       background: transparent;
     }
 
+    .meta label {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--muted);
+      font-weight: 700;
+    }
+
     .meta small {
       display: inline;
       color: var(--muted);
@@ -143,6 +151,34 @@
 
     .meta strong {
       color: var(--text);
+    }
+
+    .meta input,
+    .meta select {
+      min-height: 34px;
+      border: 0;
+      border-bottom: 1px solid rgba(40, 215, 195, 0.52);
+      border-radius: 0;
+      background: transparent;
+      color: var(--text);
+      font: inherit;
+      font-weight: 800;
+      outline: none;
+      padding: 4px 2px;
+    }
+
+    .meta input {
+      width: 7.4rem;
+    }
+
+    .meta select {
+      width: 8.4rem;
+      appearance: auto;
+    }
+
+    .meta input:disabled,
+    .meta select:disabled {
+      opacity: 0.72;
     }
 
     .history {
@@ -328,6 +364,15 @@
         padding: 0;
       }
 
+      .meta label {
+        flex: 1 1 auto;
+      }
+
+      .meta input,
+      .meta select {
+        width: 100%;
+      }
+
       .history-actions {
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -389,14 +434,21 @@
     <section class="history" aria-label="送信した文">
       <div class="history-head">
         <div class="meta">
-          <div>
-            <small>ルーム</small>
-            <strong id="room-id-label">未設定</strong>
-          </div>
-          <div>
-            <small>教科</small>
-            <strong id="subject-label">math</strong>
-          </div>
+          <label>
+            <span>ルーム</span>
+            <input id="room-id-input" type="text" inputmode="numeric" autocomplete="off" placeholder="1234">
+          </label>
+          <label>
+            <span>教科</span>
+            <select id="subject-input">
+              <option value="math">数学</option>
+              <option value="common">共通</option>
+              <option value="science">理科</option>
+              <option value="social">社会</option>
+              <option value="english">英語</option>
+              <option value="school_life">学校生活</option>
+            </select>
+          </label>
           <div>
             <small>送信</small>
             <strong id="sent-count-label">0件</strong>
@@ -554,14 +606,20 @@
     ];
 
     const params = new URLSearchParams(location.search);
-    const roomId = params.get('roomId') || '';
-    const roomKey = params.get('roomKey') || '';
-    const sessionId = params.get('sessionId') || '';
-    const subject = params.get('subject') || 'math';
+    const STORAGE_PREFIX = 'tsutaeru_external_mic_';
+    let roomId = params.get('roomId') || localStorage.getItem(STORAGE_PREFIX + 'roomId') || '';
+    let roomKey = params.get('roomKey') || '';
+    let sessionId = params.get('sessionId') || localStorage.getItem(STORAGE_PREFIX + 'sessionId') || '';
+    let subject = params.get('subject') || localStorage.getItem(STORAGE_PREFIX + 'subject') || 'math';
+    let hasOpenedRoom = false;
+    let openRoomPromise = null;
+    let heartbeatTimer = 0;
 
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     const startButton = document.getElementById('start-button');
     const statusEl = document.getElementById('status');
+    const roomIdInput = document.getElementById('room-id-input');
+    const subjectInput = document.getElementById('subject-input');
     const sentCountEl = document.getElementById('sent-count-label');
     const historyListEl = document.getElementById('history-list');
     const historyActionsEl = document.getElementById('history-actions');
@@ -576,12 +634,124 @@
     let sentHistory = [];
     let historyOrder = 'newest';
 
-    document.getElementById('room-id-label').textContent = roomId || '未設定';
-    document.getElementById('subject-label').textContent = subject;
+    if (!sessionId) {
+      sessionId = String(Date.now()) + '-' + String(Math.floor(100000 + Math.random() * 900000));
+      localStorage.setItem(STORAGE_PREFIX + 'sessionId', sessionId);
+    }
+
+    roomIdInput.value = roomId;
+    subjectInput.value = subject;
 
     function setStatus(message, isError) {
       statusEl.textContent = message;
       statusEl.classList.toggle('is-error', Boolean(isError));
+    }
+
+    function saveExternalMicSettings() {
+      roomId = String(roomIdInput.value || '').trim();
+      subject = String(subjectInput.value || 'math').trim() || 'math';
+      localStorage.setItem(STORAGE_PREFIX + 'roomId', roomId);
+      localStorage.setItem(STORAGE_PREFIX + 'subject', subject);
+      localStorage.setItem(STORAGE_PREFIX + 'sessionId', sessionId);
+    }
+
+    function setSettingsDisabled(disabled) {
+      roomIdInput.disabled = Boolean(disabled);
+      subjectInput.disabled = Boolean(disabled);
+    }
+
+    function postToGas(action, values) {
+      const body = new URLSearchParams();
+      body.set('action', action);
+
+      Object.keys(values || {}).forEach((key) => {
+        body.set(key, values[key]);
+      });
+
+      return fetch(GAS_WEB_APP_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        keepalive: true,
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8'
+        },
+        body
+      });
+    }
+
+    function openExternalLessonRoom() {
+      saveExternalMicSettings();
+
+      if (!roomId) {
+        setStatus('ルームIDを入力してください。', true);
+        return Promise.resolve(false);
+      }
+
+      if (hasOpenedRoom) {
+        return Promise.resolve(true);
+      }
+
+      if (openRoomPromise) {
+        return openRoomPromise;
+      }
+
+      setSettingsDisabled(true);
+      startButton.disabled = true;
+      setStatus('ルーム ' + roomId + ' に入室しています。', false);
+
+      openRoomPromise = postToGas('openLessonRoom', {
+        roomId: roomId,
+        sessionId: sessionId,
+        teacherName: '外部マイク',
+        joinExisting: 'true'
+      }).then(() => {
+        return new Promise((resolve) => {
+          setTimeout(resolve, 700);
+        });
+      }).then(() => {
+        hasOpenedRoom = true;
+        startLessonHeartbeat();
+        setStatus('入室しました。マイクを開始します。', false);
+        return true;
+      }).catch(() => {
+        setStatus('入室処理を送れませんでした。通信を確認してください。', true);
+        setSettingsDisabled(false);
+        return false;
+      }).finally(() => {
+        startButton.disabled = false;
+        openRoomPromise = null;
+      });
+
+      return openRoomPromise;
+    }
+
+    function startLessonHeartbeat() {
+      clearInterval(heartbeatTimer);
+      heartbeatTimer = setInterval(() => {
+        if (!hasOpenedRoom || !roomId || !sessionId) return;
+
+        postToGas('lessonTeacherHeartbeat', {
+          roomId: roomId,
+          roomKey: roomKey,
+          sessionId: sessionId
+        }).catch(() => {
+          // 入室状態の補助なので失敗しても音声入力を止めません。
+        });
+      }, 30000);
+    }
+
+    function closeExternalLessonRoom() {
+      if (!hasOpenedRoom || !roomId || !sessionId) return;
+
+      clearInterval(heartbeatTimer);
+      postToGas('closeLessonRoom', {
+        roomId: roomId,
+        roomKey: roomKey,
+        sessionId: sessionId
+      }).catch(() => {
+        // 退室補助なので失敗してもページ終了を妨げません。
+      });
+      hasOpenedRoom = false;
     }
 
     function formatHistoryTime(date) {
@@ -783,25 +953,19 @@
     }
 
     function sendLessonText(text, force, historyId) {
-      const body = new URLSearchParams();
-      body.set('action', 'appendLessonMicLog');
-      body.set('roomId', roomId);
-      body.set('roomKey', roomKey);
-      body.set('sessionId', sessionId);
-      body.set('subject', subject);
-      body.set('jaText', text);
-      body.set('force', force ? '1' : '0');
-
       if (!text && !force) return;
 
-      fetch(GAS_WEB_APP_URL, {
-        method: 'POST',
-        mode: 'no-cors',
-        keepalive: true,
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8'
-        },
-        body
+      postToGas('appendLessonMicLog', {
+        roomId: roomId,
+        roomKey: roomKey,
+        sessionId: sessionId,
+        subject: subject,
+        jaText: text,
+        force: force ? '1' : '0'
+      }).catch(() => {
+        if (text) {
+          setStatus('送信に失敗しました。通信を確認してください。', true);
+        }
       });
 
       if (text) {
@@ -877,18 +1041,24 @@
         return;
       }
 
-      if (!roomId || !roomKey || !sessionId) {
-        setStatus('ルーム情報がありません。本体アプリの授業モードから開いてください。', true);
+      saveExternalMicSettings();
+
+      if (!roomId || !sessionId) {
+        setStatus('ルームIDを入力してください。', true);
         return;
       }
 
-      recognition = recognition || createRecognition();
+      openExternalLessonRoom().then((opened) => {
+        if (!opened) return;
 
-      try {
-        recognition.start();
-      } catch (error) {
-        setStatus('マイクを開始できませんでした。ページを再読み込みしてもう一度試してください。', true);
-      }
+        recognition = recognition || createRecognition();
+
+        try {
+          recognition.start();
+        } catch (error) {
+          setStatus('マイクを開始できませんでした。ページを再読み込みしてもう一度試してください。', true);
+        }
+      });
     }
 
     function stopMic() {
@@ -917,6 +1087,7 @@
 
     window.addEventListener('beforeunload', () => {
       flushPendingText(true);
+      closeExternalLessonRoom();
     });
 
     renderSentHistory();
