@@ -199,7 +199,7 @@
   <script>
     const GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzBSH540vZK4G62twUfsketq9Pi2RZFocmfcNFwdEVV-IPqHH1Izb0VAFW_SRtN4nbf/exec';
     const LESSON_MIC_SILENCE_MS = 4500;
-    const LESSON_MIC_CHUNK_PHRASE_COUNT = 3;
+    const LESSON_MIC_CHUNK_SENTENCE_COUNT = 3;
     const LESSON_MIC_MIN_CHARS = 2;
 
     const params = new URLSearchParams(location.search);
@@ -220,7 +220,6 @@
     let recognition = null;
     let running = false;
     let pendingText = '';
-    let pendingPhraseCount = 0;
     let silenceTimer = 0;
     let sentCount = 0;
 
@@ -238,6 +237,45 @@
         .replace(/\s+/g, ' ')
         .replace(/([ぁ-んァ-ヶ一-龠々ー])\s+(?=[ぁ-んァ-ヶ一-龠々ー])/g, '$1')
         .trim();
+    }
+
+    function prepareSpeechTextForLessonChunk(value) {
+      return normalizeText(value)
+        .replace(/[、,]+$/g, '')
+        .replace(/^(こんにちは|おはようございます|こんばんは)(?=[ぁ-んァ-ヶ一-龠々ー])/g, '$1。')
+        .replace(/(ますか|ましたか|ですか|でしょうか|ます|ました|です|でした|ください|ましょう|でしょう)(?=(さて|では|それでは|まず|次に|続いて|最後に|先ほど|前回|今日|教科書|ノート|頭の中|隣|黒板|時間|みんな|自分|整理|確認|問題|答え|ポイント))/g, '$1。')
+        .replace(/(ください|ましょう|ます|ました|です|でした)(?=(もし|できれば|できた人|分からない|終わった人|解けた人))/g, '$1。')
+        .replace(/([！？!?])(?=[ぁ-んァ-ヶ一-龠々ー])/g, '$1。')
+        .replace(/。+/g, '。')
+        .trim();
+    }
+
+    function countLessonSentences(value) {
+      const text = normalizeText(value);
+      const matches = text.match(/[。！？!?]/g);
+      return matches ? matches.length : 0;
+    }
+
+    function takeLessonSentenceChunk(value, count) {
+      const text = normalizeText(value);
+      let seen = 0;
+
+      for (let index = 0; index < text.length; index += 1) {
+        if (/[。！？!?]/.test(text.charAt(index))) {
+          seen += 1;
+          if (seen >= count) {
+            return {
+              chunk: text.slice(0, index + 1).trim(),
+              rest: text.slice(index + 1).trim()
+            };
+          }
+        }
+      }
+
+      return {
+        chunk: '',
+        rest: text
+      };
     }
 
     function appendVisibleText(text) {
@@ -261,18 +299,21 @@
     }
 
     function addPendingText(text) {
-      const safeText = normalizeText(text);
+      const safeText = prepareSpeechTextForLessonChunk(text);
       if (!safeText) return;
 
       pendingText = normalizeText(pendingText + safeText);
-      pendingPhraseCount += 1;
       updatePendingView();
 
-      if (pendingPhraseCount >= LESSON_MIC_CHUNK_PHRASE_COUNT) {
-        flushPendingText(false);
-      } else {
-        scheduleSilenceFlush();
+      while (countLessonSentences(pendingText) >= LESSON_MIC_CHUNK_SENTENCE_COUNT) {
+        const picked = takeLessonSentenceChunk(pendingText, LESSON_MIC_CHUNK_SENTENCE_COUNT);
+        if (!picked.chunk) break;
+        pendingText = picked.rest;
+        sendLessonText(picked.chunk, false);
       }
+
+      updatePendingView();
+      scheduleSilenceFlush();
     }
 
     function flushPendingText(force) {
@@ -280,7 +321,6 @@
       if (!text || text.length < LESSON_MIC_MIN_CHARS) return;
 
       pendingText = '';
-      pendingPhraseCount = 0;
       updatePendingView();
       clearTimeout(silenceTimer);
       sendLessonText(text, force);
