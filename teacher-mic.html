@@ -236,14 +236,49 @@
         .replace(/[\u00a0\u3000]/g, ' ')
         .replace(/\s+/g, ' ')
         .replace(/([ぁ-んァ-ヶ一-龠々ー])\s+(?=[ぁ-んァ-ヶ一-龠々ー])/g, '$1')
+        .replace(/([ぁ-んァ-ヶ一-龠々ー])\s+(?=[、。！？!?])/g, '$1')
+        .replace(/([、。！？!?])\s+(?=[ぁ-んァ-ヶ一-龠々ー])/g, '$1')
+        .trim();
+    }
+
+    function normalizeLessonMathText(text) {
+      const safeText = normalizeText(text);
+      if (!safeText) return '';
+
+      return safeText
+        .replace(/ルート\s*([0-9０-９]+)/g, '√$1')
+        .replace(/√\s*([0-9０-９]+)/g, '√$1')
+        .replace(/[（(]\s*[xX]\s*[+＋]\s*([A-Za-zＡ-Ｚａ-ｚ])\s*[）)]?\s*[（(]\s*[xX]\s*[+＋]\s*([A-Za-zＡ-Ｚａ-ｚ])\s*[）)]/g, '(x+$1)(x+$2)')
+        .replace(/[（(]\s*[xX]\s*[+＋]\s*([A-Za-zＡ-Ｚａ-ｚ])\s+[（(]\s*[xX]\s*[+＋]\s*([A-Za-zＡ-Ｚａ-ｚ])(?=の|を|で|、|。|$)/g, '(x+$1)(x+$2)')
+        .replace(/[（(]\s*[xX]\s*[+＋]\s*([A-Za-zＡ-Ｚａ-ｚ])\s*(?:の)?2乗/g, '(x+$1)の2乗')
+        .replace(/[xX]\s*[+＋]\s*([A-Za-zＡ-Ｚａ-ｚ])/g, 'x+$1')
+        .replace(/\s*([＋+＝=×÷])\s*/g, '$1')
+        .replace(/\s+/g, ' ')
+        .trim();
+    }
+
+    function prepareJapaneseForLessonText(text) {
+      const safeText = normalizeText(text);
+      if (!safeText) return '';
+
+      return safeText
+        .replace(/(してください)(?=(では|それでは|さて|まず|次に|続いて|最後に|教科書|ノート|黒板|隣|先生))/g, '$1。')
+        .replace(/(しましょう|ましょう)(?=(では|それでは|さて|まず|次に|続いて|最後に|教科書|ノート|黒板|隣|先生))/g, '$1。')
+        .replace(/(確認します|発表します|始めます|行います|解きます)(?=(では|それでは|さて|まず|次に|続いて|最後に|教科書|ノート|黒板|隣|先生|かっこ|問題))/g, '$1。')
+        .replace(/(開きましょう|まとめてみましょう|話し合ってください|見合ってください|見せに来ましょう)(?=(では|それでは|さて|まず|次に|続いて|最後に|教科書|ノート|黒板|隣|先生|前回|今日))/g, '$1。')
+        .replace(/([。！？!?])(?=(では|それでは|さて|まず|次に|続いて|最後に|教科書|ノート|黒板|隣|先生))/g, '$1 ')
+        .replace(/(1つは|一つは|もう一つは|もう1つは)(?=\S)/g, '$1 ')
+        .replace(/([0-9０-９]+)\s*ページ/g, '$1ページ')
+        .replace(/([0-9０-９]+)\s*分/g, '$1分')
+        .replace(/\s+/g, ' ')
         .trim();
     }
 
     function prepareSpeechTextForLessonChunk(value) {
-      return normalizeText(value)
+      return prepareJapaneseForLessonText(normalizeLessonMathText(value))
         .replace(/[、,]+$/g, '')
         .replace(/^(こんにちは|おはようございます|こんばんは)(?=[ぁ-んァ-ヶ一-龠々ー])/g, '$1。')
-        .replace(/(ますか|ましたか|ですか|でしょうか|ます|ました|です|でした|ください|ましょう|でしょう)(?=(さて|では|それでは|まず|次に|続いて|最後に|先ほど|前回|今日|教科書|ノート|頭の中|隣|黒板|時間|みんな|自分|整理|確認|問題|答え|ポイント))/g, '$1。')
+        .replace(/(ますか|ましたか|ですか|でしょうか|ます|ました|です|でした|ください|ましょう|でしょう|開きましょう|始めます|行います|解きます)(?=(さて|では|それでは|まず|次に|続いて|最後に|先ほど|前回|今日|教科書|ノート|頭の中|隣|黒板|時間|みんな|自分|整理|確認|問題|答え|ポイント|かっこ))/g, '$1。')
         .replace(/(ください|ましょう|ます|ました|です|でした)(?=(もし|できれば|できた人|分からない|終わった人|解けた人))/g, '$1。')
         .replace(/([！？!?])(?=[ぁ-んァ-ヶ一-龠々ー])/g, '$1。')
         .replace(/。+/g, '。')
@@ -294,7 +329,7 @@
     function scheduleSilenceFlush() {
       clearTimeout(silenceTimer);
       silenceTimer = setTimeout(() => {
-        flushPendingText(true);
+        flushPendingText(false);
       }, LESSON_MIC_SILENCE_MS);
     }
 
@@ -319,6 +354,12 @@
     function flushPendingText(force) {
       const text = normalizeText(pendingText);
       if (!text || text.length < LESSON_MIC_MIN_CHARS) return;
+
+      if (!force && countLessonSentences(text) < LESSON_MIC_CHUNK_SENTENCE_COUNT) {
+        setStatus('3文たまるまで送信を待っています。授業を続けてください。', false);
+        scheduleSilenceFlush();
+        return;
+      }
 
       pendingText = '';
       updatePendingView();
