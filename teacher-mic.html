@@ -42,6 +42,69 @@
       overflow: hidden;
     }
 
+    body.is-room-preparing main {
+      visibility: hidden;
+    }
+
+    .room-startup {
+      position: fixed;
+      inset: 0;
+      z-index: 1000;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      background: var(--bg);
+    }
+
+    .room-startup[hidden] {
+      display: none;
+    }
+
+    .room-startup-content {
+      display: grid;
+      justify-items: center;
+      gap: 16px;
+      width: min(100%, 420px);
+      text-align: center;
+    }
+
+    .room-startup-icon {
+      display: grid;
+      place-items: center;
+      width: 72px;
+      height: 72px;
+      color: #002a25;
+      background: var(--main);
+      border-radius: 50%;
+      font-size: 2rem;
+      box-shadow: 0 18px 46px rgba(40, 215, 195, 0.2);
+    }
+
+    .room-startup-title {
+      margin: 0;
+      color: var(--text);
+      font-size: clamp(1.25rem, 5vw, 1.7rem);
+      font-weight: 900;
+    }
+
+    .room-startup-message {
+      min-height: 1.6em;
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.95rem;
+      line-height: 1.7;
+    }
+
+    .room-startup-retry {
+      min-width: 150px;
+      color: #002a25;
+      background: var(--main);
+    }
+
+    .room-startup-retry[hidden] {
+      display: none;
+    }
+
     main {
       display: grid;
       grid-template-rows: minmax(0, 1fr);
@@ -469,7 +532,21 @@
     }
   </style>
 </head>
-<body>
+<body class="is-room-preparing">
+  <section class="room-startup" id="room-startup" role="status" aria-live="polite">
+    <div class="room-startup-content">
+      <div class="room-startup-icon" id="room-startup-icon" aria-hidden="true">
+        <i class="fa-solid fa-spinner fa-spin"></i>
+      </div>
+      <h1 class="room-startup-title" id="room-startup-title">ルーム作成中</h1>
+      <p class="room-startup-message" id="room-startup-message">空いているルームIDを確認しています。</p>
+      <button class="room-startup-retry" type="button" id="room-startup-retry" hidden>
+        <i class="fa-solid fa-rotate-right" aria-hidden="true"></i>
+        <span>もう一度試す</span>
+      </button>
+    </div>
+  </section>
+
   <main>
     <section class="history" aria-label="送信した文">
       <div class="history-head">
@@ -663,6 +740,11 @@
     const startButton = document.getElementById('start-button');
     const statusEl = document.getElementById('status');
     const roomIdDisplay = document.getElementById('room-id-display');
+    const roomStartup = document.getElementById('room-startup');
+    const roomStartupIcon = document.getElementById('room-startup-icon');
+    const roomStartupTitle = document.getElementById('room-startup-title');
+    const roomStartupMessage = document.getElementById('room-startup-message');
+    const roomStartupRetry = document.getElementById('room-startup-retry');
     const subjectInput = document.getElementById('subject-input');
     const sentCountEl = document.getElementById('sent-count-label');
     const historyListEl = document.getElementById('history-list');
@@ -735,6 +817,29 @@
         : '<i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i><span>作成中</span>';
     }
 
+    function setRoomStartupLoading() {
+      document.body.classList.add('is-room-preparing');
+      roomStartup.hidden = false;
+      roomStartupIcon.innerHTML = '<i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i>';
+      roomStartupTitle.textContent = 'ルーム作成中';
+      roomStartupMessage.textContent = '空いているルームIDを確認しています。';
+      roomStartupRetry.hidden = true;
+    }
+
+    function completeRoomStartup() {
+      document.body.classList.remove('is-room-preparing');
+      roomStartup.hidden = true;
+    }
+
+    function showRoomStartupError(message) {
+      document.body.classList.add('is-room-preparing');
+      roomStartup.hidden = false;
+      roomStartupIcon.innerHTML = '<i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>';
+      roomStartupTitle.textContent = 'ルームを作成できませんでした';
+      roomStartupMessage.textContent = message || '通信を確認して、もう一度お試しください。';
+      roomStartupRetry.hidden = false;
+    }
+
     function requestUnusedLessonRoomId() {
       return new Promise((resolve, reject) => {
         const callbackName = '__tsutaeruRoom_' + Date.now() + '_' + Math.floor(Math.random() * 100000);
@@ -778,9 +883,11 @@
         renderExternalRoomId();
         startButton.disabled = false;
         setStatus('ルーム ' + roomId + ' の準備ができました。', false);
+        completeRoomStartup();
         return Promise.resolve(true);
       }
 
+      setRoomStartupLoading();
       startButton.disabled = true;
       renderExternalRoomId();
       setStatus('空いているルームIDを作成しています。', false);
@@ -793,12 +900,15 @@
         startButton.disabled = false;
         setStatus('ルーム ' + roomId + ' の準備ができました。', false);
         setHistoryEmptyMessage('右のマイクボタンを押してから話すと、下に文が入ります。その後、アプリ側に送信されて、生徒側に表示されます。');
+        completeRoomStartup();
         return true;
       }).catch((error) => {
         renderExternalRoomId();
-        startButton.disabled = false;
-        setStatus(error && error.message ? error.message : 'ルーム番号を発行できませんでした。', true);
-        setHistoryEmptyMessage('マイクボタンを押すと、ルームIDの作成をもう一度試します。');
+        startButton.disabled = true;
+        const message = error && error.message ? error.message : 'ルーム番号を発行できませんでした。';
+        setStatus(message, true);
+        setHistoryEmptyMessage('ルームIDを作成してからマイクを開始できます。');
+        showRoomStartupError(message);
         return false;
       });
     }
@@ -1332,6 +1442,9 @@
     }, { passive: false });
 
     renderSentHistory();
+    roomStartupRetry.addEventListener('click', () => {
+      initializeExternalRoomId();
+    });
     initializeExternalRoomId();
   </script>
 </body>
