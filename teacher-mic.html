@@ -155,7 +155,6 @@
       color: var(--text);
     }
 
-    .meta input,
     .meta select {
       min-height: 34px;
       border: 0;
@@ -170,10 +169,6 @@
       padding: 4px 2px;
     }
 
-    .meta input {
-      width: 7.4rem;
-    }
-
     .room-meta {
       position: relative;
       flex: 0 1 auto;
@@ -183,52 +178,19 @@
       flex: 0 1 auto;
     }
 
-    .room-input-wrap {
-      position: relative;
+    .room-id-display {
       display: inline-flex;
       align-items: center;
-      width: 8.2rem;
-    }
-
-    .room-input-wrap input {
-      width: 100%;
-      padding-right: 38px;
-    }
-
-    .room-random-button {
-      position: absolute;
-      top: 50%;
-      right: 0;
-      display: inline-grid;
-      place-items: center;
-      width: 32px;
-      height: 32px;
-      padding: 0;
+      justify-content: center;
+      gap: 6px;
+      min-width: 5.8rem;
+      min-height: 34px;
+      padding: 4px 8px;
       color: var(--main);
       background: transparent;
-      border: 0;
-      border-radius: 50%;
-      box-shadow: none;
-      transform: translateY(-50%);
-    }
-
-    .room-random-status {
-      display: inline-flex;
-      align-items: center;
-      gap: 5px;
-      flex: 1 1 100%;
-      color: var(--main);
-      font-size: 0.78rem;
-      font-weight: 800;
-      line-height: 1.4;
-    }
-
-    .room-random-status[hidden] {
-      display: none;
-    }
-
-    .room-random-status.is-error {
-      color: var(--danger);
+      border-bottom: 1px solid rgba(40, 215, 195, 0.52);
+      font-size: 1.05rem;
+      font-weight: 900;
     }
 
     .meta select {
@@ -432,24 +394,14 @@
         min-width: 0;
       }
 
-      .meta input,
       .meta select {
         width: 100%;
         font-size: 16px;
       }
 
-      .room-input-wrap {
+      .room-id-display {
         width: 100%;
         min-width: 0;
-      }
-
-      .room-random-button,
-      .meta .room-random-button {
-        width: 34px;
-      }
-
-      .room-random-status {
-        grid-column: 1 / -1;
       }
 
       .history-actions {
@@ -524,11 +476,9 @@
         <div class="meta">
           <div class="room-meta">
             <span>ルーム</span>
-            <span class="room-input-wrap">
-              <input id="room-id-input" type="text" inputmode="numeric" autocomplete="off" maxlength="4" placeholder="1234">
-              <button class="room-random-button" type="button" id="room-random-button" aria-label="未使用のルーム番号を割り振る" title="未使用のルーム番号を割り振る">
-                <i class="fa-solid fa-dice" aria-hidden="true"></i>
-              </button>
+            <span class="room-id-display" id="room-id-display">
+              <i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i>
+              <span>作成中</span>
             </span>
           </div>
           <label class="subject-meta">
@@ -546,11 +496,10 @@
             <small>送信</small>
             <strong id="sent-count-label">0件</strong>
           </div>
-          <small class="room-random-status" id="room-random-status" role="status" hidden></small>
         </div>
         <section class="input-area" aria-label="音声入力">
           <div class="status" id="status">停止中</div>
-          <button class="main-button mic-toggle" type="button" id="start-button" aria-label="マイク開始">
+          <button class="main-button mic-toggle" type="button" id="start-button" aria-label="マイク開始" disabled>
             <i class="fa-solid fa-microphone" aria-hidden="true"></i>
           </button>
         </section>
@@ -701,9 +650,9 @@
 
     const params = new URLSearchParams(location.search);
     const STORAGE_PREFIX = 'tsutaeru_external_mic_';
-    let roomId = params.get('roomId') || localStorage.getItem(STORAGE_PREFIX + 'roomId') || '';
+    let roomId = params.get('roomId') || '';
     let roomKey = params.get('roomKey') || '';
-    let sessionId = params.get('sessionId') || localStorage.getItem(STORAGE_PREFIX + 'sessionId') || '';
+    let sessionId = params.get('sessionId') || '';
     let subject = params.get('subject') || localStorage.getItem(STORAGE_PREFIX + 'subject') || 'math';
     let hasOpenedRoom = false;
     let openRoomPromise = null;
@@ -713,9 +662,7 @@
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     const startButton = document.getElementById('start-button');
     const statusEl = document.getElementById('status');
-    const roomIdInput = document.getElementById('room-id-input');
-    const roomRandomButton = document.getElementById('room-random-button');
-    const roomRandomStatus = document.getElementById('room-random-status');
+    const roomIdDisplay = document.getElementById('room-id-display');
     const subjectInput = document.getElementById('subject-input');
     const sentCountEl = document.getElementById('sent-count-label');
     const historyListEl = document.getElementById('history-list');
@@ -739,7 +686,6 @@
       localStorage.setItem(STORAGE_PREFIX + 'sessionId', sessionId);
     }
 
-    roomIdInput.value = roomId;
     subjectInput.value = subject;
 
     function setStatus(message, isError) {
@@ -773,7 +719,6 @@
     }
 
     function saveExternalMicSettings() {
-      roomId = String(roomIdInput.value || '').trim();
       subject = String(subjectInput.value || 'math').trim() || 'math';
       localStorage.setItem(STORAGE_PREFIX + 'roomId', roomId);
       localStorage.setItem(STORAGE_PREFIX + 'subject', subject);
@@ -781,21 +726,13 @@
     }
 
     function setSettingsDisabled(disabled) {
-      roomIdInput.disabled = Boolean(disabled);
       subjectInput.disabled = Boolean(disabled);
-      roomRandomButton.disabled = Boolean(disabled);
     }
 
-    function setRoomRandomLoading(loading, message, isError) {
-      roomRandomButton.disabled = Boolean(loading || hasOpenedRoom || openRoomPromise);
-      roomRandomButton.innerHTML = loading
-        ? '<i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i>'
-        : '<i class="fa-solid fa-dice" aria-hidden="true"></i>';
-      roomRandomStatus.hidden = !message;
-      roomRandomStatus.classList.toggle('is-error', Boolean(isError));
-      roomRandomStatus.innerHTML = message
-        ? (loading ? '<i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i> ' : '') + escapeHtml(message)
-        : '';
+    function renderExternalRoomId() {
+      roomIdDisplay.innerHTML = roomId
+        ? '<span>' + escapeHtml(roomId) + '</span>'
+        : '<i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i><span>作成中</span>';
     }
 
     function requestUnusedLessonRoomId() {
@@ -836,19 +773,33 @@
       });
     }
 
-    function assignUnusedRoomId() {
-      if (hasOpenedRoom || openRoomPromise || running) return;
+    function initializeExternalRoomId() {
+      if (roomId) {
+        renderExternalRoomId();
+        startButton.disabled = false;
+        setStatus('ルーム ' + roomId + ' の準備ができました。', false);
+        return Promise.resolve(true);
+      }
 
-      setRoomRandomLoading(true, '未使用の番号を探しています。', false);
-      requestUnusedLessonRoomId().then((nextRoomId) => {
-        roomIdInput.value = nextRoomId;
+      startButton.disabled = true;
+      renderExternalRoomId();
+      setStatus('空いているルームIDを作成しています。', false);
+      setHistoryEmptyMessage('ルームIDを作成しています。番号が表示されるまでお待ちください。');
+
+      return requestUnusedLessonRoomId().then((nextRoomId) => {
+        roomId = nextRoomId;
+        renderExternalRoomId();
         saveExternalMicSettings();
-        setRoomRandomLoading(false, '未使用のルーム番号を割り振りました。', false);
-        setTimeout(() => {
-          setRoomRandomLoading(false, '', false);
-        }, 2400);
+        startButton.disabled = false;
+        setStatus('ルーム ' + roomId + ' の準備ができました。', false);
+        setHistoryEmptyMessage('右のマイクボタンを押してから話すと、下に文が入ります。その後、アプリ側に送信されて、生徒側に表示されます。');
+        return true;
       }).catch((error) => {
-        setRoomRandomLoading(false, error && error.message ? error.message : 'ルーム番号を発行できませんでした。', true);
+        renderExternalRoomId();
+        startButton.disabled = false;
+        setStatus(error && error.message ? error.message : 'ルーム番号を発行できませんでした。', true);
+        setHistoryEmptyMessage('マイクボタンを押すと、ルームIDの作成をもう一度試します。');
+        return false;
       });
     }
 
@@ -1301,7 +1252,13 @@
       saveExternalMicSettings();
 
       if (!roomId || !sessionId) {
-        setStatus('ルームIDを入力してください。', true);
+        if (!roomId) {
+          initializeExternalRoomId().then((ready) => {
+            if (ready) startMic();
+          });
+          return;
+        }
+        setStatus('セッションを準備できませんでした。ページを再読み込みしてください。', true);
         return;
       }
 
@@ -1349,8 +1306,6 @@
       }
     });
 
-    roomRandomButton.addEventListener('click', assignUnusedRoomId);
-
     historyOldestButton.addEventListener('click', () => {
       historyOrder = 'oldest';
       renderSentHistory();
@@ -1377,6 +1332,7 @@
     }, { passive: false });
 
     renderSentHistory();
+    initializeExternalRoomId();
   </script>
 </body>
 </html>
