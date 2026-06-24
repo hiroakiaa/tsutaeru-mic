@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>つたえる君 外部マイク</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
   <style>
@@ -25,6 +25,7 @@
 
     * {
       box-sizing: border-box;
+      touch-action: manipulation;
     }
 
     body {
@@ -134,7 +135,8 @@
       background: transparent;
     }
 
-    .meta label {
+    .meta label,
+    .meta .room-meta {
       display: inline-flex;
       align-items: center;
       gap: 8px;
@@ -162,6 +164,7 @@
       background: transparent;
       color: var(--text);
       font: inherit;
+      font-size: 16px;
       font-weight: 800;
       outline: none;
       padding: 4px 2px;
@@ -169,6 +172,58 @@
 
     .meta input {
       width: 7.4rem;
+    }
+
+    .room-meta {
+      position: relative;
+    }
+
+    .room-input-wrap {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      width: 8.2rem;
+    }
+
+    .room-input-wrap input {
+      width: 100%;
+      padding-right: 38px;
+    }
+
+    .room-random-button {
+      position: absolute;
+      top: 50%;
+      right: 0;
+      display: inline-grid;
+      place-items: center;
+      width: 32px;
+      height: 32px;
+      padding: 0;
+      color: var(--main);
+      background: transparent;
+      border: 0;
+      border-radius: 50%;
+      box-shadow: none;
+      transform: translateY(-50%);
+    }
+
+    .room-random-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      flex: 1 1 100%;
+      color: var(--main);
+      font-size: 0.78rem;
+      font-weight: 800;
+      line-height: 1.4;
+    }
+
+    .room-random-status[hidden] {
+      display: none;
+    }
+
+    .room-random-status.is-error {
+      color: var(--danger);
     }
 
     .meta select {
@@ -364,13 +419,24 @@
         padding: 0;
       }
 
-      .meta label {
+      .meta label,
+      .meta .room-meta {
         flex: 1 1 auto;
       }
 
       .meta input,
       .meta select {
         width: 100%;
+        font-size: 16px;
+      }
+
+      .room-input-wrap {
+        width: 100%;
+      }
+
+      .room-random-button,
+      .meta .room-random-button {
+        width: 34px;
       }
 
       .history-actions {
@@ -434,10 +500,15 @@
     <section class="history" aria-label="送信した文">
       <div class="history-head">
         <div class="meta">
-          <label>
+          <div class="room-meta">
             <span>ルーム</span>
-            <input id="room-id-input" type="text" inputmode="numeric" autocomplete="off" placeholder="1234">
-          </label>
+            <span class="room-input-wrap">
+              <input id="room-id-input" type="text" inputmode="numeric" autocomplete="off" maxlength="4" placeholder="1234">
+              <button class="room-random-button" type="button" id="room-random-button" aria-label="未使用のルーム番号を割り振る" title="未使用のルーム番号を割り振る">
+                <i class="fa-solid fa-dice" aria-hidden="true"></i>
+              </button>
+            </span>
+          </div>
           <label>
             <span>教科</span>
             <select id="subject-input">
@@ -453,6 +524,7 @@
             <small>送信</small>
             <strong id="sent-count-label">0件</strong>
           </div>
+          <small class="room-random-status" id="room-random-status" role="status" hidden></small>
         </div>
         <section class="input-area" aria-label="音声入力">
           <div class="status" id="status">停止中</div>
@@ -613,12 +685,15 @@
     let subject = params.get('subject') || localStorage.getItem(STORAGE_PREFIX + 'subject') || 'math';
     let hasOpenedRoom = false;
     let openRoomPromise = null;
+    let roomOpenFailed = false;
     let heartbeatTimer = 0;
 
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     const startButton = document.getElementById('start-button');
     const statusEl = document.getElementById('status');
     const roomIdInput = document.getElementById('room-id-input');
+    const roomRandomButton = document.getElementById('room-random-button');
+    const roomRandomStatus = document.getElementById('room-random-status');
     const subjectInput = document.getElementById('subject-input');
     const sentCountEl = document.getElementById('sent-count-label');
     const historyListEl = document.getElementById('history-list');
@@ -635,6 +710,7 @@
     let historyOrder = 'newest';
     let historyEmptyMessage = '右のマイクボタンを押してから話すと、下に文が入ります。その後、アプリ側に送信されて、生徒側に表示されます。';
     let lessonSendChain = Promise.resolve();
+    let microphonePermissionPromise = null;
 
     if (!sessionId) {
       sessionId = String(Date.now()) + '-' + String(Math.floor(100000 + Math.random() * 900000));
@@ -685,6 +761,106 @@
     function setSettingsDisabled(disabled) {
       roomIdInput.disabled = Boolean(disabled);
       subjectInput.disabled = Boolean(disabled);
+      roomRandomButton.disabled = Boolean(disabled);
+    }
+
+    function setRoomRandomLoading(loading, message, isError) {
+      roomRandomButton.disabled = Boolean(loading || hasOpenedRoom || openRoomPromise);
+      roomRandomButton.innerHTML = loading
+        ? '<i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i>'
+        : '<i class="fa-solid fa-dice" aria-hidden="true"></i>';
+      roomRandomStatus.hidden = !message;
+      roomRandomStatus.classList.toggle('is-error', Boolean(isError));
+      roomRandomStatus.innerHTML = message
+        ? (loading ? '<i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i> ' : '') + escapeHtml(message)
+        : '';
+    }
+
+    function requestUnusedLessonRoomId() {
+      return new Promise((resolve, reject) => {
+        const callbackName = '__tsutaeruRoom_' + Date.now() + '_' + Math.floor(Math.random() * 100000);
+        const script = document.createElement('script');
+        let timer = 0;
+
+        function cleanup() {
+          clearTimeout(timer);
+          delete window[callbackName];
+          script.remove();
+        }
+
+        window[callbackName] = (result) => {
+          cleanup();
+          if (!result || !result.ok || !result.roomId) {
+            reject(new Error(result && result.message ? result.message : 'ルーム番号を発行できませんでした。'));
+            return;
+          }
+          resolve(String(result.roomId));
+        };
+
+        script.onerror = () => {
+          cleanup();
+          reject(new Error('ルーム番号を取得できませんでした。通信を確認してください。'));
+        };
+
+        timer = setTimeout(() => {
+          cleanup();
+          reject(new Error('ルーム番号の取得に時間がかかっています。もう一度お試しください。'));
+        }, 15000);
+
+        script.src = GAS_WEB_APP_URL +
+          '?action=generateUnusedLessonRoomId&callback=' + encodeURIComponent(callbackName) +
+          '&_=' + Date.now();
+        document.head.appendChild(script);
+      });
+    }
+
+    function assignUnusedRoomId() {
+      if (hasOpenedRoom || openRoomPromise || running) return;
+
+      setRoomRandomLoading(true, '未使用の番号を探しています。', false);
+      requestUnusedLessonRoomId().then((nextRoomId) => {
+        roomIdInput.value = nextRoomId;
+        saveExternalMicSettings();
+        setRoomRandomLoading(false, '未使用のルーム番号を割り振りました。', false);
+        setTimeout(() => {
+          setRoomRandomLoading(false, '', false);
+        }, 2400);
+      }).catch((error) => {
+        setRoomRandomLoading(false, error && error.message ? error.message : 'ルーム番号を発行できませんでした。', true);
+      });
+    }
+
+    function ensureMicrophonePermission() {
+      if (
+        !navigator.mediaDevices ||
+        typeof navigator.mediaDevices.getUserMedia !== 'function'
+      ) {
+        return Promise.resolve(true);
+      }
+
+      if (microphonePermissionPromise) {
+        return microphonePermissionPromise;
+      }
+
+      setStatus('マイクの使用許可を確認しています。', false);
+
+      microphonePermissionPromise = navigator.mediaDevices.getUserMedia({
+        audio: true
+      }).then((stream) => {
+        stream.getTracks().forEach((track) => track.stop());
+        return true;
+      }).catch((error) => {
+        microphonePermissionPromise = null;
+        const errorName = error && error.name ? error.name : '';
+        if (errorName === 'NotAllowedError' || errorName === 'PermissionDeniedError') {
+          setStatus('マイクが許可されていません。ブラウザのマイク許可を確認してください。', true);
+        } else {
+          setStatus('マイクを準備できませんでした。接続と端末設定を確認してください。', true);
+        }
+        return false;
+      });
+
+      return microphonePermissionPromise;
     }
 
     function postToGas(action, values) {
@@ -722,6 +898,7 @@
         return openRoomPromise;
       }
 
+      roomOpenFailed = false;
       setSettingsDisabled(true);
       setStatus('ルーム ' + roomId + ' に入室しています。', false);
 
@@ -736,6 +913,7 @@
         setStatus(running ? 'マイク入力中です。ルームの準備も完了しました。' : '入室準備が完了しました。', false);
         return true;
       }).catch(() => {
+        roomOpenFailed = true;
         setStatus('入室処理を送れませんでした。通信を確認してください。', true);
         setSettingsDisabled(false);
         setHistoryEmptyMessage('右のマイクボタンを押してから話すと、下に文が入ります。その後、アプリ側に送信されて、生徒側に表示されます。');
@@ -1108,21 +1286,30 @@
       setMicPreparing(true);
 
       const roomReadyPromise = openExternalLessonRoom();
-      recognition = recognition || createRecognition();
+      ensureMicrophonePermission().then((allowed) => {
+        if (!allowed || roomOpenFailed) {
+          setMicPreparing(false);
+          return;
+        }
 
-      try {
-        recognition.start();
-      } catch (error) {
-        setMicPreparing(false);
-        setHistoryEmptyMessage('右のマイクボタンを押してから話すと、下に文が入ります。その後、アプリ側に送信されて、生徒側に表示されます。');
-        setStatus('マイクを開始できませんでした。ページを再読み込みしてもう一度試してください。', true);
-        return;
-      }
+        recognition = recognition || createRecognition();
+
+        try {
+          recognition.start();
+        } catch (error) {
+          setMicPreparing(false);
+          setHistoryEmptyMessage('右のマイクボタンを押してから話すと、下に文が入ります。その後、アプリ側に送信されて、生徒側に表示されます。');
+          setStatus('マイクを開始できませんでした。ページを再読み込みしてもう一度試してください。', true);
+        }
+      });
 
       roomReadyPromise.then((opened) => {
-        if (opened || !running) return;
-        running = false;
-        if (recognition) recognition.stop();
+        if (opened) return;
+        setMicPreparing(false);
+        if (running) {
+          running = false;
+          if (recognition) recognition.stop();
+        }
       });
     }
 
@@ -1140,6 +1327,8 @@
       }
     });
 
+    roomRandomButton.addEventListener('click', assignUnusedRoomId);
+
     historyOldestButton.addEventListener('click', () => {
       historyOrder = 'oldest';
       renderSentHistory();
@@ -1154,6 +1343,16 @@
       flushPendingText(true);
       closeExternalLessonRoom();
     });
+
+    document.addEventListener('gesturestart', (event) => {
+      event.preventDefault();
+    }, { passive: false });
+
+    document.addEventListener('touchmove', (event) => {
+      if (event.touches && event.touches.length > 1) {
+        event.preventDefault();
+      }
+    }, { passive: false });
 
     renderSentHistory();
   </script>
