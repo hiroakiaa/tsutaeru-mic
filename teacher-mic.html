@@ -634,6 +634,7 @@
     let sentHistory = [];
     let historyOrder = 'newest';
     let historyEmptyMessage = '右のマイクボタンを押してから話すと、下に文が入ります。その後、アプリ側に送信されて、生徒側に表示されます。';
+    let lessonSendChain = Promise.resolve();
 
     if (!sessionId) {
       sessionId = String(Date.now()) + '-' + String(Math.floor(100000 + Math.random() * 900000));
@@ -730,13 +731,9 @@
         teacherName: '外部マイク',
         joinExisting: 'true'
       }).then(() => {
-        return new Promise((resolve) => {
-          setTimeout(resolve, 700);
-        });
-      }).then(() => {
         hasOpenedRoom = true;
         startLessonHeartbeat();
-        setStatus('入室しました。マイクを開始します。', false);
+        setStatus(running ? 'マイク入力中です。ルームの準備も完了しました。' : '入室準備が完了しました。', false);
         return true;
       }).catch(() => {
         setStatus('入室処理を送れませんでした。通信を確認してください。', true);
@@ -980,29 +977,55 @@
     function sendLessonText(text, force, historyId) {
       if (!text && !force) return;
 
-      postToGas('appendLessonMicLog', {
-        roomId: roomId,
-        roomKey: roomKey,
-        sessionId: sessionId,
-        subject: subject,
-        jaText: text,
-        force: force ? '1' : '0'
+      if (text) {
+        setStatus(
+          hasOpenedRoom
+            ? '音声を送信しています。'
+            : 'マイク入力中です。ルーム準備後に自動送信します。',
+          false
+        );
+      } else if (force) {
+        setStatus(
+          hasOpenedRoom
+            ? '残りの音声を授業ログに確定します。'
+            : 'ルーム準備後に、残りの音声を確定します。',
+          false
+        );
+      }
+
+      lessonSendChain = lessonSendChain.then(() => {
+        const roomReady = hasOpenedRoom
+          ? Promise.resolve(true)
+          : (openRoomPromise || openExternalLessonRoom());
+
+        return roomReady.then((opened) => {
+          if (!opened) {
+            throw new Error('room-open-failed');
+          }
+
+          return postToGas('appendLessonMicLog', {
+            roomId: roomId,
+            roomKey: roomKey,
+            sessionId: sessionId,
+            subject: subject,
+            jaText: text,
+            force: force ? '1' : '0'
+          });
+        }).then(() => {
+          if (text) {
+            sentCount += 1;
+            sentCountEl.textContent = sentCount + '件';
+            markSentHistoryDone(historyId);
+            setStatus('送信しました。3つ分で授業ログに確定します。', false);
+          } else if (force) {
+            setStatus('残りの音声を授業ログに確定しました。', false);
+          }
+        });
       }).catch(() => {
         if (text) {
           setStatus('送信に失敗しました。通信を確認してください。', true);
         }
       });
-
-      if (text) {
-        sentCount += 1;
-        sentCountEl.textContent = sentCount + '件';
-        setStatus('送信しました。3つ分で授業ログに確定します。', false);
-        setTimeout(() => {
-          markSentHistoryDone(historyId);
-        }, 900);
-      } else if (force) {
-        setStatus('残りの音声を授業ログに確定します。', false);
-      }
     }
 
     function createRecognition() {
@@ -1018,7 +1041,12 @@
         startButton.setAttribute('aria-label', '停止');
         startButton.innerHTML = '<i class="fa-solid fa-stop" aria-hidden="true"></i>';
         historyActionsEl.hidden = false;
-        setStatus('マイク入力中です。', false);
+        setStatus(
+          hasOpenedRoom
+            ? 'マイク入力中です。'
+            : 'マイク入力中です。ルーム準備後に自動送信します。',
+          false
+        );
         setHistoryEmptyMessage('マイク入力中です。話した文がここに表示され、つたえる君へ送信されます。');
       };
 
@@ -1079,21 +1107,22 @@
 
       setMicPreparing(true);
 
-      openExternalLessonRoom().then((opened) => {
-        if (!opened) {
-          setMicPreparing(false);
-          return;
-        }
+      const roomReadyPromise = openExternalLessonRoom();
+      recognition = recognition || createRecognition();
 
-        recognition = recognition || createRecognition();
+      try {
+        recognition.start();
+      } catch (error) {
+        setMicPreparing(false);
+        setHistoryEmptyMessage('右のマイクボタンを押してから話すと、下に文が入ります。その後、アプリ側に送信されて、生徒側に表示されます。');
+        setStatus('マイクを開始できませんでした。ページを再読み込みしてもう一度試してください。', true);
+        return;
+      }
 
-        try {
-          recognition.start();
-        } catch (error) {
-          setMicPreparing(false);
-          setHistoryEmptyMessage('右のマイクボタンを押してから話すと、下に文が入ります。その後、アプリ側に送信されて、生徒側に表示されます。');
-          setStatus('マイクを開始できませんでした。ページを再読み込みしてもう一度試してください。', true);
-        }
+      roomReadyPromise.then((opened) => {
+        if (opened || !running) return;
+        running = false;
+        if (recognition) recognition.stop();
       });
     }
 
