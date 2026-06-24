@@ -633,6 +633,7 @@
     let sentCount = 0;
     let sentHistory = [];
     let historyOrder = 'newest';
+    let historyEmptyMessage = '右のマイクボタンを押してから話すと、下に文が入ります。その後、アプリ側に送信されて、生徒側に表示されます。';
 
     if (!sessionId) {
       sessionId = String(Date.now()) + '-' + String(Math.floor(100000 + Math.random() * 900000));
@@ -645,6 +646,31 @@
     function setStatus(message, isError) {
       statusEl.textContent = message;
       statusEl.classList.toggle('is-error', Boolean(isError));
+    }
+
+    function setHistoryEmptyMessage(message) {
+      historyEmptyMessage = String(message || '');
+      if (!sentHistory.length) {
+        historyListEl.innerHTML = '<p class="history-empty">' + escapeHtml(historyEmptyMessage) + '</p>';
+      }
+    }
+
+    function setMicPreparing(preparing) {
+      startButton.disabled = Boolean(preparing);
+      startButton.classList.toggle('is-preparing', Boolean(preparing));
+
+      if (preparing) {
+        startButton.setAttribute('aria-label', 'マイクを準備中');
+        startButton.innerHTML = '<i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i>';
+        setStatus('ルームとマイクを準備しています。', false);
+        setHistoryEmptyMessage('準備中です。マイクが使える状態になるまで、そのままお待ちください。');
+        return;
+      }
+
+      if (!running) {
+        startButton.setAttribute('aria-label', 'マイク開始');
+        startButton.innerHTML = '<i class="fa-solid fa-microphone" aria-hidden="true"></i>';
+      }
     }
 
     function saveExternalMicSettings() {
@@ -696,7 +722,6 @@
       }
 
       setSettingsDisabled(true);
-      startButton.disabled = true;
       setStatus('ルーム ' + roomId + ' に入室しています。', false);
 
       openRoomPromise = postToGas('openLessonRoom', {
@@ -716,9 +741,9 @@
       }).catch(() => {
         setStatus('入室処理を送れませんでした。通信を確認してください。', true);
         setSettingsDisabled(false);
+        setHistoryEmptyMessage('右のマイクボタンを押してから話すと、下に文が入ります。その後、アプリ側に送信されて、生徒側に表示されます。');
         return false;
       }).finally(() => {
-        startButton.disabled = false;
         openRoomPromise = null;
       });
 
@@ -771,7 +796,7 @@
       historyNewestButton.classList.toggle('is-active', historyOrder === 'newest');
 
       if (!rows.length) {
-        historyListEl.innerHTML = '<p class="history-empty">右のマイクボタンを押してから話すと、下に文が入ります。その後、アプリ側に送信されて、生徒側に表示されます。</p>';
+        historyListEl.innerHTML = '<p class="history-empty">' + escapeHtml(historyEmptyMessage) + '</p>';
         return;
       }
 
@@ -988,11 +1013,13 @@
 
       rec.onstart = () => {
         running = true;
+        setMicPreparing(false);
         startButton.classList.add('is-running');
         startButton.setAttribute('aria-label', '停止');
         startButton.innerHTML = '<i class="fa-solid fa-stop" aria-hidden="true"></i>';
         historyActionsEl.hidden = false;
         setStatus('マイク入力中です。', false);
+        setHistoryEmptyMessage('マイク入力中です。話した文がここに表示され、つたえる君へ送信されます。');
       };
 
       rec.onresult = (event) => {
@@ -1004,6 +1031,8 @@
       };
 
       rec.onerror = (event) => {
+        setMicPreparing(false);
+        setHistoryEmptyMessage('右のマイクボタンを押してから話すと、下に文が入ります。その後、アプリ側に送信されて、生徒側に表示されます。');
         setStatus('音声認識で問題が起きました: ' + (event.error || 'unknown'), true);
       };
 
@@ -1016,7 +1045,7 @@
             } catch (error) {
               setStatus('マイクの再開に失敗しました。もう一度マイク開始を押してください。', true);
               running = false;
-              startButton.disabled = false;
+              setMicPreparing(false);
               startButton.classList.remove('is-running');
               startButton.setAttribute('aria-label', 'マイク開始');
               startButton.innerHTML = '<i class="fa-solid fa-microphone" aria-hidden="true"></i>';
@@ -1025,7 +1054,7 @@
           return;
         }
 
-        startButton.disabled = false;
+        setMicPreparing(false);
         startButton.classList.remove('is-running');
         startButton.setAttribute('aria-label', 'マイク開始');
         startButton.innerHTML = '<i class="fa-solid fa-microphone" aria-hidden="true"></i>';
@@ -1048,14 +1077,21 @@
         return;
       }
 
+      setMicPreparing(true);
+
       openExternalLessonRoom().then((opened) => {
-        if (!opened) return;
+        if (!opened) {
+          setMicPreparing(false);
+          return;
+        }
 
         recognition = recognition || createRecognition();
 
         try {
           recognition.start();
         } catch (error) {
+          setMicPreparing(false);
+          setHistoryEmptyMessage('右のマイクボタンを押してから話すと、下に文が入ります。その後、アプリ側に送信されて、生徒側に表示されます。');
           setStatus('マイクを開始できませんでした。ページを再読み込みしてもう一度試してください。', true);
         }
       });
