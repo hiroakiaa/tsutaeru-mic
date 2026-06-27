@@ -597,6 +597,7 @@
     const LESSON_MIC_IDLE_FLUSH_MS = 3200;
     const LESSON_MIC_CHUNK_SENTENCE_COUNT = 2;
     const LESSON_MIC_MIN_CHARS = 2;
+    const GAS_POST_TIMEOUT_MS = 6500;
     const KOTOBA_MIC_CORRECTIONS = [
       [/おはようございません/g, 'おはようございます'],
       [/前回の復讐/g, '前回の復習'],
@@ -946,15 +947,16 @@
       return microphonePermissionPromise;
     }
 
-    function postToGas(action, values) {
+    function postToGas(action, values, timeoutMs) {
       const body = new URLSearchParams();
+      const safeTimeoutMs = Math.max(2500, Number(timeoutMs || GAS_POST_TIMEOUT_MS));
       body.set('action', action);
 
       Object.keys(values || {}).forEach((key) => {
         body.set(key, values[key]);
       });
 
-      return fetch(GAS_WEB_APP_URL, {
+      const request = fetch(GAS_WEB_APP_URL, {
         method: 'POST',
         mode: 'no-cors',
         keepalive: true,
@@ -963,6 +965,13 @@
         },
         body
       });
+
+      return Promise.race([
+        request,
+        new Promise((resolve) => {
+          setTimeout(() => resolve({ ok: true, timedOut: true }), safeTimeoutMs);
+        })
+      ]);
     }
 
     function openExternalLessonRoom() {
@@ -990,7 +999,7 @@
         sessionId: sessionId,
         teacherName: '外部マイク',
         joinExisting: 'true'
-      }).then(() => {
+      }, 8000).then(() => {
         hasOpenedRoom = true;
         startLessonHeartbeat();
         setStatus(running ? 'マイク入力中です。ルームの準備も完了しました。' : '入室準備が完了しました。', false);
@@ -1271,7 +1280,7 @@
             subject: subject,
             jaText: text,
             force: force ? '1' : '0'
-          });
+          }, 6500);
         }).then(() => {
           if (text) {
             sentCount += 1;
