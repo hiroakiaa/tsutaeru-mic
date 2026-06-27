@@ -595,7 +595,7 @@
     const GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzBSH540vZK4G62twUfsketq9Pi2RZFocmfcNFwdEVV-IPqHH1Izb0VAFW_SRtN4nbf/exec';
     const LESSON_MIC_IDLE_STATUS_MS = 2500;
     const LESSON_MIC_IDLE_FLUSH_MS = 4500;
-    const LESSON_MIC_CHUNK_SENTENCE_COUNT = 3;
+    const LESSON_MIC_CHUNK_SENTENCE_COUNT = 1;
     const LESSON_MIC_MIN_CHARS = 2;
     const KOTOBA_MIC_CORRECTIONS = [
       [/おはようございません/g, 'おはようございます'],
@@ -1222,8 +1222,7 @@
       if (!safeText) return;
 
       const historyId = addSentHistory(safeText, 'sending');
-      sendLessonText(safeText, false, historyId);
-      scheduleSilenceFlush();
+      sendLessonText(safeText, true, historyId);
     }
 
     function flushPendingText(force) {
@@ -1278,7 +1277,7 @@
             sentCount += 1;
             sentCountEl.textContent = sentCount + '件';
             markSentHistoryDone(historyId);
-            setStatus('送信しました。3つ分で授業ログに確定します。', false);
+            setStatus('送信しました。生徒側では翻訳が終わった文を最大3文まとめて表示します。', false);
           } else if (force) {
             setStatus('残りの音声を授業ログに確定しました。', false);
           }
