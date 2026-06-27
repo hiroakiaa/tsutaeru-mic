@@ -593,11 +593,10 @@
 
   <script>
     const GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzBSH540vZK4G62twUfsketq9Pi2RZFocmfcNFwdEVV-IPqHH1Izb0VAFW_SRtN4nbf/exec';
-    const LESSON_MIC_IDLE_STATUS_MS = 1800;
-    const LESSON_MIC_IDLE_FLUSH_MS = 3200;
-    const LESSON_MIC_CHUNK_SENTENCE_COUNT = 2;
+    const LESSON_MIC_IDLE_STATUS_MS = 2500;
+    const LESSON_MIC_IDLE_FLUSH_MS = 4500;
+    const LESSON_MIC_CHUNK_SENTENCE_COUNT = 3;
     const LESSON_MIC_MIN_CHARS = 2;
-    const GAS_POST_TIMEOUT_MS = 6500;
     const KOTOBA_MIC_CORRECTIONS = [
       [/おはようございません/g, 'おはようございます'],
       [/前回の復讐/g, '前回の復習'],
@@ -729,7 +728,7 @@
     const params = new URLSearchParams(location.search);
     const STORAGE_PREFIX = 'tsutaeru_external_mic_';
     let roomId = params.get('roomId') || '';
-    let roomKey = params.get('roomKey') || localStorage.getItem(STORAGE_PREFIX + 'roomKey') || '';
+    let roomKey = params.get('roomKey') || '';
     let sessionId = params.get('sessionId') || '';
     let subject = params.get('subject') || localStorage.getItem(STORAGE_PREFIX + 'subject') || 'math';
     let hasOpenedRoom = false;
@@ -804,7 +803,6 @@
     function saveExternalMicSettings() {
       subject = String(subjectInput.value || 'math').trim() || 'math';
       localStorage.setItem(STORAGE_PREFIX + 'roomId', roomId);
-      localStorage.setItem(STORAGE_PREFIX + 'roomKey', roomKey);
       localStorage.setItem(STORAGE_PREFIX + 'subject', subject);
       localStorage.setItem(STORAGE_PREFIX + 'sessionId', sessionId);
     }
@@ -880,49 +878,6 @@
       });
     }
 
-    function requestOpenExternalLessonRoom() {
-      return new Promise((resolve, reject) => {
-        const callbackName = '__tsutaeruOpenRoom_' + Date.now() + '_' + Math.floor(Math.random() * 100000);
-        const script = document.createElement('script');
-        let timer = 0;
-
-        function cleanup() {
-          clearTimeout(timer);
-          delete window[callbackName];
-          script.remove();
-        }
-
-        window[callbackName] = (result) => {
-          cleanup();
-          if (!result || !result.ok || !result.roomKey) {
-            reject(new Error(result && result.message ? result.message : '入室できませんでした。'));
-            return;
-          }
-          resolve(result);
-        };
-
-        script.onerror = () => {
-          cleanup();
-          reject(new Error('入室処理を確認できませんでした。通信を確認してください。'));
-        };
-
-        timer = setTimeout(() => {
-          cleanup();
-          reject(new Error('入室処理に時間がかかっています。もう一度お試しください。'));
-        }, 10000);
-
-        script.src = GAS_WEB_APP_URL +
-          '?action=openExternalLessonRoom' +
-          '&callback=' + encodeURIComponent(callbackName) +
-          '&roomId=' + encodeURIComponent(roomId) +
-          '&sessionId=' + encodeURIComponent(sessionId) +
-          '&teacherName=' + encodeURIComponent('外部マイク') +
-          '&joinExisting=true' +
-          '&_=' + Date.now();
-        document.head.appendChild(script);
-      });
-    }
-
     function initializeExternalRoomId() {
       if (roomId) {
         renderExternalRoomId();
@@ -991,16 +946,15 @@
       return microphonePermissionPromise;
     }
 
-    function postToGas(action, values, timeoutMs) {
+    function postToGas(action, values) {
       const body = new URLSearchParams();
-      const safeTimeoutMs = Math.max(2500, Number(timeoutMs || GAS_POST_TIMEOUT_MS));
       body.set('action', action);
 
       Object.keys(values || {}).forEach((key) => {
         body.set(key, values[key]);
       });
 
-      const request = fetch(GAS_WEB_APP_URL, {
+      return fetch(GAS_WEB_APP_URL, {
         method: 'POST',
         mode: 'no-cors',
         keepalive: true,
@@ -1009,13 +963,6 @@
         },
         body
       });
-
-      return Promise.race([
-        request,
-        new Promise((resolve) => {
-          setTimeout(() => resolve({ ok: true, timedOut: true }), safeTimeoutMs);
-        })
-      ]);
     }
 
     function openExternalLessonRoom() {
@@ -1038,8 +985,12 @@
       setSettingsDisabled(true);
       setStatus('ルーム ' + roomId + ' に入室しています。', false);
 
-      openRoomPromise = requestOpenExternalLessonRoom().then((result) => {
-        roomKey = result.roomKey || roomKey;
+      openRoomPromise = postToGas('openLessonRoom', {
+        roomId: roomId,
+        sessionId: sessionId,
+        teacherName: '外部マイク',
+        joinExisting: 'true'
+      }).then(() => {
         hasOpenedRoom = true;
         saveExternalMicSettings();
         startLessonHeartbeat();
@@ -1321,13 +1272,13 @@
             subject: subject,
             jaText: text,
             force: force ? '1' : '0'
-          }, 6500);
+          });
         }).then(() => {
           if (text) {
             sentCount += 1;
             sentCountEl.textContent = sentCount + '件';
             markSentHistoryDone(historyId);
-            setStatus('送信しました。短い指示はすぐに、続く説明はまとまりごとに授業ログへ確定します。', false);
+            setStatus('送信しました。3つ分で授業ログに確定します。', false);
           } else if (force) {
             setStatus('残りの音声を授業ログに確定しました。', false);
           }
@@ -1424,14 +1375,10 @@
 
       setMicPreparing(true);
 
-      Promise.all([
-        openExternalLessonRoom(),
-        ensureMicrophonePermission()
-      ]).then((results) => {
-        const opened = Boolean(results[0]);
-        const allowed = Boolean(results[1]);
+      const roomReadyPromise = openExternalLessonRoom();
 
-        if (!opened || !allowed || roomOpenFailed) {
+      ensureMicrophonePermission().then((allowed) => {
+        if (!allowed || roomOpenFailed) {
           setMicPreparing(false);
           return;
         }
@@ -1447,7 +1394,16 @@
         }
       }).catch(() => {
         setMicPreparing(false);
-        setStatus('ルームまたはマイクを準備できませんでした。通信とマイク許可を確認してください。', true);
+        setStatus('マイクを準備できませんでした。通信とマイク許可を確認してください。', true);
+      });
+
+      roomReadyPromise.then((opened) => {
+        if (opened) return;
+        setMicPreparing(false);
+        if (running) {
+          running = false;
+          if (recognition) recognition.stop();
+        }
       });
     }
 
