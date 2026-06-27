@@ -593,9 +593,9 @@
 
   <script>
     const GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzBSH540vZK4G62twUfsketq9Pi2RZFocmfcNFwdEVV-IPqHH1Izb0VAFW_SRtN4nbf/exec';
-    const LESSON_MIC_IDLE_STATUS_MS = 4500;
-    const LESSON_MIC_IDLE_FLUSH_MS = 10000;
-    const LESSON_MIC_CHUNK_SENTENCE_COUNT = 3;
+    const LESSON_MIC_IDLE_STATUS_MS = 1800;
+    const LESSON_MIC_IDLE_FLUSH_MS = 3200;
+    const LESSON_MIC_CHUNK_SENTENCE_COUNT = 2;
     const LESSON_MIC_MIN_CHARS = 2;
     const KOTOBA_MIC_CORRECTIONS = [
       [/おはようございません/g, 'おはようございます'],
@@ -1208,7 +1208,7 @@
       clearTimeout(idleFlushTimer);
 
       silenceTimer = setTimeout(() => {
-        setStatus('音声入力中です。10秒ほど次の音声がなければ、残りを授業ログに確定します。', false);
+        setStatus('音声入力中です。少し間が空いたら、残りを授業ログに確定します。', false);
       }, LESSON_MIC_IDLE_STATUS_MS);
 
       idleFlushTimer = setTimeout(() => {
@@ -1277,7 +1277,7 @@
             sentCount += 1;
             sentCountEl.textContent = sentCount + '件';
             markSentHistoryDone(historyId);
-            setStatus('送信しました。3つ分で授業ログに確定します。', false);
+            setStatus('送信しました。短い指示はすぐに、続く説明はまとまりごとに授業ログへ確定します。', false);
           } else if (force) {
             setStatus('残りの音声を授業ログに確定しました。', false);
           }
