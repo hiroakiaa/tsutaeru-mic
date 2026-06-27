@@ -1281,6 +1281,11 @@
           });
         }).then(() => {
           if (text) {
+            postToGas('prepareRecentLessonLogTranslationFormulas', {
+              roomId: roomId,
+              roomKey: roomKey,
+              limit: '3'
+            }).catch(() => {});
             sentCount += 1;
             sentCountEl.textContent = sentCount + '件';
             markSentHistoryDone(historyId);
