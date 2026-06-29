@@ -1384,7 +1384,8 @@
             sessionId: sessionId,
             subject: subject,
             jaText: text,
-            force: force ? '1' : '0'
+            force: force ? '1' : '0',
+            clientEventId: historyId || ''
           }, 30000);
         }).then((result) => {
           if (!result || !result.ok) {
@@ -1393,6 +1394,14 @@
 
           if (result.log && result.log.roomKey) {
             roomKey = String(result.log.roomKey || roomKey).trim();
+          }
+
+          if (text && result.duplicate) {
+            sentCount += 1;
+            sentCountEl.textContent = sentCount + '件';
+            markSentHistoryDone(historyId);
+            setStatus('この文はすでに保存済みです。', false);
+            return;
           }
 
           if (text && result.ignored) {
