@@ -805,7 +805,7 @@
     }
 
     function getConnectionHelpMessage() {
-      return '通信が不安定です。マイクは止めずに続けて大丈夫です。未送信の文は自動で再送します。長く続く場合は、Wi-Fiを確認し、ページを閉じずに少し待ってください。';
+      return '送信の確認に時間がかかっています。マイクは止めずに続けて大丈夫です。長く続く場合は、Wi-Fiを確認し、ページを閉じずに少し待ってください。';
     }
 
     function setHistoryEmptyMessage(message) {
@@ -981,10 +981,6 @@
 
     function postToGas(action, values) {
       const body = new URLSearchParams();
-      const controller = new AbortController();
-      const timer = setTimeout(() => {
-        controller.abort();
-      }, 22000);
 
       body.set('action', action);
 
@@ -996,13 +992,10 @@
         method: 'POST',
         mode: 'no-cors',
         keepalive: true,
-        signal: controller.signal,
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8'
         },
         body
-      }).finally(() => {
-        clearTimeout(timer);
       });
     }
 
@@ -1352,11 +1345,7 @@
             jaText: text,
             force: force ? '1' : '0'
           });
-        }).then((result) => {
-          if (result && result.ok === false) {
-            throw new Error(result.message || 'send-failed');
-          }
-
+        }).then(() => {
           if (text) {
             postToGas('prepareRecentLessonLogTranslationFormulas', {
               roomId: roomId,
