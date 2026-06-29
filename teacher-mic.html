@@ -331,6 +331,11 @@
       background: rgba(31, 24, 8, 0.78);
     }
 
+    .history-card.is-error {
+      border-color: rgba(255, 120, 144, 0.72);
+      background: rgba(42, 8, 15, 0.82);
+    }
+
     .history-card-head {
       display: flex;
       align-items: center;
@@ -360,6 +365,28 @@
     .history-card.is-sending .history-card-state {
       border-color: rgba(255, 216, 117, 0.56);
       color: #ffe3a1;
+    }
+
+    .history-card.is-error .history-card-state {
+      border-color: rgba(255, 120, 144, 0.58);
+      color: #ff9dae;
+    }
+
+    .history-card-action {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 32px;
+      margin-top: 10px;
+      padding: 5px 12px;
+      color: #ffccd5;
+      background: rgba(255, 120, 144, 0.12);
+      border: 1px solid rgba(255, 120, 144, 0.45);
+      border-radius: 999px;
+      font: inherit;
+      font-size: 0.82rem;
+      font-weight: 850;
+      cursor: pointer;
     }
 
     .history-spinner {
@@ -762,6 +789,8 @@
     let historyEmptyMessage = '右のマイクボタンを押してから話すと、下に文が入ります。その後、アプリ側に送信されて、生徒側に表示されます。';
     let lessonSendChain = Promise.resolve();
     let microphonePermissionPromise = null;
+    const SEND_RETRY_MAX = 4;
+    const SEND_RETRY_BASE_MS = 1800;
 
     if (!sessionId) {
       sessionId = String(Date.now()) + '-' + String(Math.floor(100000 + Math.random() * 900000));
@@ -773,6 +802,10 @@
     function setStatus(message, isError) {
       statusEl.textContent = message;
       statusEl.classList.toggle('is-error', Boolean(isError));
+    }
+
+    function getConnectionHelpMessage() {
+      return '通信が不安定です。マイクは止めずに続けて大丈夫です。未送信の文は自動で再送します。長く続く場合は、Wi-Fiを確認し、ページを閉じずに少し待ってください。';
     }
 
     function setHistoryEmptyMessage(message) {
@@ -951,7 +984,7 @@
       const controller = new AbortController();
       const timer = setTimeout(() => {
         controller.abort();
-      }, 12000);
+      }, 22000);
 
       body.set('action', action);
 
@@ -962,6 +995,7 @@
       return fetch(GAS_WEB_APP_URL, {
         method: 'POST',
         mode: 'no-cors',
+        keepalive: true,
         signal: controller.signal,
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8'
@@ -1005,7 +1039,7 @@
         return true;
       }).catch(() => {
         roomOpenFailed = true;
-        setStatus('入室処理を送れませんでした。通信を確認してください。', true);
+        setStatus(getConnectionHelpMessage(), true);
         setSettingsDisabled(false);
         setHistoryEmptyMessage('右のマイクボタンを押してから話すと、下に文が入ります。その後、アプリ側に送信されて、生徒側に表示されます。');
         return false;
@@ -1068,17 +1102,25 @@
 
       historyListEl.innerHTML = rows.map((item) => {
         const isSending = item.state === 'sending';
-        const stateHtml = isSending
-          ? '<span class="history-card-state"><span class="history-spinner" aria-hidden="true"></span>送信準備中</span>'
-          : '<span class="history-card-state">送信済み</span>';
+        const isRetrying = item.state === 'retrying';
+        const isError = item.state === 'error';
+        const stateHtml = isSending || isRetrying
+          ? '<span class="history-card-state"><span class="history-spinner" aria-hidden="true"></span>' + (isRetrying ? '再送中' : '送信準備中') + '</span>'
+          : (isError
+            ? '<span class="history-card-state">未送信</span>'
+            : '<span class="history-card-state">送信済み</span>');
+        const retryHtml = isError
+          ? '<button class="history-card-action" type="button" data-retry-history="' + escapeHtml(item.id) + '">この文を再送する</button>'
+          : '';
 
         return [
-          '<article class="history-card' + (isSending ? ' is-sending' : '') + '">',
+          '<article class="history-card' + ((isSending || isRetrying) ? ' is-sending' : '') + (isError ? ' is-error' : '') + '">',
           '<div class="history-card-head">',
           '<small>#' + item.index + ' ' + item.time + '</small>',
           stateHtml,
           '</div>',
           '<p>' + escapeHtml(item.text) + '</p>',
+          retryHtml,
           '</article>'
         ].join('');
       }).join('');
@@ -1094,7 +1136,8 @@
         index: sentHistory.length + 1,
         time: formatHistoryTime(new Date()),
         text: safeText,
-        state: state || 'sent'
+        state: state || 'sent',
+        attempts: 0
       };
 
       sentHistory.push(item);
@@ -1107,7 +1150,33 @@
       const item = sentHistory.find((row) => row.id === id);
       if (!item) return;
       item.state = 'sent';
+      item.error = '';
       renderSentHistory();
+    }
+
+    function updateSentHistoryState(id, state, error) {
+      if (!id) return;
+      const item = sentHistory.find((row) => row.id === id);
+      if (!item) return;
+      item.state = state || item.state;
+      item.error = error || '';
+      renderSentHistory();
+    }
+
+    function incrementSentHistoryAttempt(id) {
+      if (!id) return 0;
+      const item = sentHistory.find((row) => row.id === id);
+      if (!item) return 0;
+      item.attempts = Number(item.attempts || 0) + 1;
+      return item.attempts;
+    }
+
+    function retrySentHistory(id) {
+      const item = sentHistory.find((row) => row.id === id);
+      if (!item || !item.text) return;
+      item.state = 'retrying';
+      renderSentHistory();
+      sendLessonText(item.text, true, item.id);
     }
 
     function escapeHtml(value) {
@@ -1261,6 +1330,10 @@
         );
       }
 
+      if (text && historyId) {
+        updateSentHistoryState(historyId, incrementSentHistoryAttempt(historyId) > 1 ? 'retrying' : 'sending');
+      }
+
       lessonSendChain = lessonSendChain.catch(() => true).then(() => {
         const roomReady = hasOpenedRoom
           ? Promise.resolve(true)
@@ -1279,7 +1352,11 @@
             jaText: text,
             force: force ? '1' : '0'
           });
-        }).then(() => {
+        }).then((result) => {
+          if (result && result.ok === false) {
+            throw new Error(result.message || 'send-failed');
+          }
+
           if (text) {
             postToGas('prepareRecentLessonLogTranslationFormulas', {
               roomId: roomId,
@@ -1294,9 +1371,23 @@
             setStatus('残りの音声を授業ログに確定しました。', false);
           }
         });
-      }).catch(() => {
+      }).catch((error) => {
         if (text) {
-          setStatus('送信に失敗しました。通信を確認してください。', true);
+          const attempts = sentHistory.find((row) => row.id === historyId);
+          const attemptCount = attempts ? Number(attempts.attempts || 0) : 0;
+          if (attemptCount < SEND_RETRY_MAX) {
+            updateSentHistoryState(historyId, 'retrying', error && error.message ? error.message : String(error || ''));
+            setStatus(getConnectionHelpMessage(), true);
+            window.setTimeout(function () {
+              sendLessonText(text, true, historyId);
+            }, SEND_RETRY_BASE_MS * Math.max(1, attemptCount));
+            return;
+          }
+
+          updateSentHistoryState(historyId, 'error', error && error.message ? error.message : String(error || ''));
+          setStatus(getConnectionHelpMessage() + ' 赤い未送信カードは「この文を再送する」を押せます。', true);
+        } else if (force) {
+          setStatus(getConnectionHelpMessage(), true);
         }
       });
     }
@@ -1440,6 +1531,14 @@
     historyNewestButton.addEventListener('click', () => {
       historyOrder = 'newest';
       renderSentHistory();
+    });
+
+    historyListEl.addEventListener('click', (event) => {
+      const retryButton = event.target && event.target.closest
+        ? event.target.closest('[data-retry-history]')
+        : null;
+      if (!retryButton) return;
+      retrySentHistory(retryButton.getAttribute('data-retry-history'));
     });
 
     window.addEventListener('beforeunload', () => {
