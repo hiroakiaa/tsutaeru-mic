@@ -331,6 +331,11 @@
       background: rgba(31, 24, 8, 0.78);
     }
 
+    .history-card.is-checking {
+      border-color: rgba(143, 179, 255, 0.7);
+      background: rgba(9, 16, 42, 0.82);
+    }
+
     .history-card.is-error {
       border-color: rgba(255, 120, 144, 0.72);
       background: rgba(42, 8, 15, 0.82);
@@ -365,6 +370,11 @@
     .history-card.is-sending .history-card-state {
       border-color: rgba(255, 216, 117, 0.56);
       color: #ffe3a1;
+    }
+
+    .history-card.is-checking .history-card-state {
+      border-color: rgba(143, 179, 255, 0.58);
+      color: #b9ccff;
     }
 
     .history-card.is-error .history-card-state {
@@ -1104,9 +1114,10 @@
       historyListEl.innerHTML = rows.map((item) => {
         const isSending = item.state === 'sending';
         const isRetrying = item.state === 'retrying';
+        const isChecking = item.state === 'checking';
         const isError = item.state === 'error';
-        const stateHtml = isSending || isRetrying
-          ? '<span class="history-card-state"><span class="history-spinner" aria-hidden="true"></span>' + (isRetrying ? '再送中' : '送信準備中') + '</span>'
+        const stateHtml = isSending || isRetrying || isChecking
+          ? '<span class="history-card-state"><span class="history-spinner" aria-hidden="true"></span>' + (isChecking ? '保存確認中' : (isRetrying ? '再送中' : '送信準備中')) + '</span>'
           : (isError
             ? '<span class="history-card-state">未送信</span>'
             : '<span class="history-card-state">送信済み</span>');
@@ -1115,7 +1126,7 @@
           : '';
 
         return [
-          '<article class="history-card' + ((isSending || isRetrying) ? ' is-sending' : '') + (isError ? ' is-error' : '') + '">',
+          '<article class="history-card' + ((isSending || isRetrying) ? ' is-sending' : '') + (isChecking ? ' is-checking' : '') + (isError ? ' is-error' : '') + '">',
           '<div class="history-card-head">',
           '<small>#' + item.index + ' ' + item.time + '</small>',
           stateHtml,
@@ -1178,6 +1189,23 @@
       item.state = 'retrying';
       renderSentHistory();
       sendLessonText(item.text, true, item.id);
+    }
+
+    function confirmLessonTextSaved(historyId) {
+      if (!historyId || !roomId || !sessionId) {
+        return Promise.resolve(false);
+      }
+
+      updateSentHistoryState(historyId, 'checking');
+
+      return postToGas('checkLessonClientEventStatus', {
+        roomId: roomId,
+        roomKey: roomKey,
+        sessionId: sessionId,
+        clientEventId: historyId
+      }, 12000).then((result) => {
+        return Boolean(result && result.ok && result.saved);
+      }).catch(() => false);
     }
 
     function escapeHtml(value) {
@@ -1426,17 +1454,34 @@
         if (text) {
           const attempts = sentHistory.find((row) => row.id === historyId);
           const attemptCount = attempts ? Number(attempts.attempts || 0) : 0;
-          if (attemptCount < SEND_RETRY_MAX) {
-            updateSentHistoryState(historyId, 'retrying', error && error.message ? error.message : String(error || ''));
-            setStatus(getConnectionHelpMessage(), true);
-            window.setTimeout(function () {
-              sendLessonText(text, true, historyId);
-            }, SEND_RETRY_BASE_MS * Math.max(1, attemptCount));
-            return;
-          }
 
-          updateSentHistoryState(historyId, 'error', error && error.message ? error.message : String(error || ''));
-          setStatus(getConnectionHelpMessage() + ' 赤い未送信カードは「この文を再送する」を押せます。', true);
+          window.setTimeout(function () {
+            confirmLessonTextSaved(historyId).then(function (saved) {
+              if (saved) {
+                sentCount += 1;
+                sentCountEl.textContent = sentCount + '件';
+                markSentHistoryDone(historyId);
+                setStatus('保存済みを確認しました。マイクはそのまま続けられます。', false);
+                return;
+              }
+
+              if (attemptCount < SEND_RETRY_MAX) {
+                updateSentHistoryState(historyId, 'retrying', error && error.message ? error.message : String(error || ''));
+                setStatus(getConnectionHelpMessage(), true);
+                window.setTimeout(function () {
+                  sendLessonText(text, true, historyId);
+                }, SEND_RETRY_BASE_MS * Math.max(1, attemptCount));
+                return;
+              }
+
+              updateSentHistoryState(historyId, 'error', error && error.message ? error.message : String(error || ''));
+              setStatus(getConnectionHelpMessage() + ' 赤い未送信カードは「この文を再送する」を押せます。', true);
+            });
+          }, 2200);
+
+          updateSentHistoryState(historyId, 'checking', error && error.message ? error.message : String(error || ''));
+          setStatus('送信結果を確認しています。マイクは止めずに続けて大丈夫です。', false);
+          return;
         } else if (force) {
           setStatus(getConnectionHelpMessage(), true);
         }
