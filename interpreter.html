@@ -1,0 +1,919 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>つたえる君 外部通訳</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+  <style>
+    :root {
+      --bg: #010605;
+      --panel: #071612;
+      --panel-soft: #0b211b;
+      --text: #f7fffc;
+      --muted: #a9c8bf;
+      --main: #28d7c3;
+      --main-dark: #12a99a;
+      --line: rgba(40, 215, 195, 0.34);
+      --line-strong: #28d7c3;
+      --accent: #8fb3ff;
+      --danger: #ff7890;
+      --warning: #ffd166;
+      --radius: 28px;
+      --radius-small: 18px;
+      --page-padding: 16px;
+    }
+
+    * {
+      box-sizing: border-box;
+      touch-action: manipulation;
+    }
+
+    html,
+    body {
+      margin: 0;
+      min-height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    body {
+      min-height: 100vh;
+      min-height: 100dvh;
+      padding: var(--page-padding);
+      padding-bottom: calc(var(--page-padding) + env(safe-area-inset-bottom));
+      overflow-x: hidden;
+    }
+
+    button,
+    select,
+    textarea {
+      font: inherit;
+    }
+
+    button {
+      border: 0;
+      cursor: pointer;
+    }
+
+    button:disabled {
+      cursor: not-allowed;
+      opacity: 0.58;
+    }
+
+    .app {
+      display: grid;
+      grid-template-rows: auto auto minmax(0, 1fr);
+      gap: 14px;
+      width: min(1120px, 100%);
+      min-height: calc(100vh - (var(--page-padding) * 2));
+      min-height: calc(100dvh - (var(--page-padding) * 2));
+      margin: 0 auto;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      min-height: 54px;
+    }
+
+    .title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 0;
+      margin: 0;
+      font-size: clamp(1.1rem, 5vw, 1.55rem);
+      font-weight: 900;
+      letter-spacing: 0;
+    }
+
+    .title i {
+      display: grid;
+      place-items: center;
+      width: 44px;
+      height: 44px;
+      min-width: 44px;
+      color: #002a25;
+      background: var(--main);
+      border-radius: 16px;
+      box-shadow: 0 16px 40px rgba(40, 215, 195, 0.16);
+    }
+
+    .status {
+      display: inline-flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 8px;
+      min-height: 34px;
+      color: var(--main);
+      border-bottom: 1px solid var(--line);
+      padding: 6px 0;
+      font-size: 0.9rem;
+      font-weight: 800;
+      text-align: right;
+    }
+
+    .status.is-error {
+      color: var(--danger);
+      border-bottom-color: rgba(255, 120, 144, 0.62);
+    }
+
+    .toolbar {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      gap: 12px;
+      padding: 14px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+    }
+
+    .direction-row {
+      grid-column: 1 / -1;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .direction-button {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-height: 68px;
+      padding: 12px;
+      color: var(--text);
+      background: var(--panel-soft);
+      border: 1px solid rgba(143, 179, 255, 0.34);
+      border-radius: 20px;
+      text-align: left;
+    }
+
+    .direction-button i {
+      display: grid;
+      place-items: center;
+      width: 42px;
+      height: 42px;
+      min-width: 42px;
+      color: #002a25;
+      background: rgba(40, 215, 195, 0.92);
+      border-radius: 15px;
+    }
+
+    .direction-button strong {
+      display: block;
+      font-size: 1rem;
+      line-height: 1.3;
+    }
+
+    .direction-button small {
+      display: block;
+      margin-top: 3px;
+      color: var(--muted);
+      font-weight: 800;
+    }
+
+    .direction-button.is-active {
+      background: rgba(40, 215, 195, 0.14);
+      border-color: var(--main);
+      box-shadow: inset 0 0 0 1px var(--main);
+    }
+
+    .field {
+      display: grid;
+      gap: 7px;
+      min-width: 0;
+    }
+
+    .field span {
+      color: var(--muted);
+      font-size: 0.86rem;
+      font-weight: 900;
+    }
+
+    .select {
+      width: 100%;
+      min-height: 52px;
+      color: var(--text);
+      background: #010d0b;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 0 14px;
+      outline: none;
+      font-size: 16px;
+      font-weight: 800;
+    }
+
+    .main-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 320px;
+      gap: 14px;
+      min-height: 0;
+    }
+
+    .panel {
+      min-width: 0;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+
+    .input-panel {
+      display: grid;
+      grid-template-rows: minmax(220px, 1fr) auto;
+      min-height: 0;
+    }
+
+    .text-wrap {
+      position: relative;
+      min-height: 0;
+    }
+
+    textarea {
+      display: block;
+      width: 100%;
+      height: 100%;
+      min-height: 260px;
+      resize: none;
+      color: var(--text);
+      background: #020a08;
+      border: 0;
+      outline: none;
+      padding: 20px;
+      font-size: clamp(1.08rem, 3.6vw, 1.55rem);
+      line-height: 1.75;
+    }
+
+    textarea::placeholder {
+      color: rgba(247, 255, 252, 0.48);
+    }
+
+    .input-actions {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 12px;
+      border-top: 1px solid rgba(40, 215, 195, 0.2);
+      background: #010605;
+    }
+
+    .left-actions,
+    .right-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 0;
+    }
+
+    .icon-button,
+    .main-button,
+    .sub-button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 9px;
+      min-height: 46px;
+      border-radius: 999px;
+      font-weight: 900;
+    }
+
+    .icon-button {
+      width: 52px;
+      min-width: 52px;
+      padding: 0;
+      color: #002a25;
+      background: var(--main);
+      font-size: 1.25rem;
+    }
+
+    .icon-button.is-listening {
+      background: var(--danger);
+      color: #270006;
+    }
+
+    .main-button {
+      min-width: 180px;
+      padding: 0 22px;
+      color: #002a25;
+      background: var(--main);
+      font-size: 1rem;
+    }
+
+    .sub-button {
+      padding: 0 16px;
+      color: var(--main);
+      background: rgba(40, 215, 195, 0.08);
+      border: 1px solid var(--line);
+    }
+
+    .results {
+      display: grid;
+      align-content: start;
+      gap: 12px;
+      min-height: 0;
+      padding: 14px;
+      overflow: auto;
+    }
+
+    .result-empty {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.8;
+    }
+
+    .result-card {
+      display: grid;
+      gap: 10px;
+      padding: 14px;
+      background: #020a08;
+      border: 1px solid rgba(40, 215, 195, 0.28);
+      border-radius: 20px;
+    }
+
+    .result-card.is-primary {
+      border-color: rgba(40, 215, 195, 0.72);
+      background: rgba(40, 215, 195, 0.09);
+    }
+
+    .result-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .result-head strong {
+      font-size: 0.95rem;
+      color: var(--text);
+    }
+
+    .result-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .result-mini-button {
+      display: grid;
+      place-items: center;
+      width: 40px;
+      height: 40px;
+      color: var(--main);
+      background: rgba(40, 215, 195, 0.08);
+      border: 1px solid var(--line);
+      border-radius: 50%;
+      font-size: 1rem;
+    }
+
+    .result-text {
+      margin: 0;
+      color: var(--text);
+      font-size: clamp(1rem, 2.8vw, 1.22rem);
+      line-height: 1.75;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+    }
+
+    .is-loading-text {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    @media (max-width: 820px) {
+      body {
+        padding: 10px;
+        padding-bottom: calc(10px + env(safe-area-inset-bottom));
+      }
+
+      .app {
+        min-height: calc(100dvh - 20px);
+      }
+
+      .toolbar {
+        grid-template-columns: 1fr;
+        padding: 10px;
+        border-radius: 22px;
+      }
+
+      .direction-row {
+        gap: 8px;
+      }
+
+      .direction-button {
+        min-height: 62px;
+        padding: 9px;
+      }
+
+      .direction-button i {
+        width: 38px;
+        height: 38px;
+        min-width: 38px;
+      }
+
+      .main-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .input-panel {
+        min-height: 420px;
+      }
+
+      .input-actions {
+        align-items: stretch;
+        flex-direction: column;
+      }
+
+      .left-actions,
+      .right-actions {
+        width: 100%;
+      }
+
+      .main-button {
+        flex: 1 1 auto;
+      }
+
+      .sub-button {
+        flex: 1 1 auto;
+      }
+
+      .results {
+        max-height: none;
+        overflow: visible;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header class="topbar">
+      <h1 class="title">
+        <i class="fa-solid fa-language" aria-hidden="true"></i>
+        <span>外部通訳</span>
+      </h1>
+      <div class="status" id="status">準備できました。</div>
+    </header>
+
+    <section class="toolbar" aria-label="通訳設定">
+      <div class="direction-row">
+        <button class="direction-button is-active" type="button" id="teacher-direction" data-direction="teacher-to-parent">
+          <i class="fa-solid fa-chalkboard-user" aria-hidden="true"></i>
+          <span>
+            <strong>先生から</strong>
+            <small>保護者への説明に</small>
+          </span>
+        </button>
+        <button class="direction-button" type="button" id="parent-direction" data-direction="parent-to-teacher">
+          <i class="fa-solid fa-earth-asia" aria-hidden="true"></i>
+          <span>
+            <strong>保護者から</strong>
+            <small>先生に伝える</small>
+          </span>
+        </button>
+      </div>
+
+      <label class="field">
+        <span>入力する言語</span>
+        <select class="select" id="source-lang"></select>
+      </label>
+
+      <label class="field">
+        <span>翻訳する言語</span>
+        <select class="select" id="target-lang"></select>
+      </label>
+    </section>
+
+    <section class="main-grid">
+      <section class="panel input-panel" aria-label="入力">
+        <div class="text-wrap">
+          <textarea id="source-text" maxlength="900" placeholder="右下のマイクを押して話してください。入力された文を確認して、翻訳します。"></textarea>
+        </div>
+        <div class="input-actions">
+          <div class="left-actions">
+            <button class="icon-button" type="button" id="mic-button" aria-label="マイク開始">
+              <i class="fa-solid fa-microphone" aria-hidden="true"></i>
+            </button>
+            <button class="sub-button" type="button" id="clear-button">
+              <i class="fa-regular fa-trash-can" aria-hidden="true"></i>
+              <span>消す</span>
+            </button>
+          </div>
+          <div class="right-actions">
+            <button class="main-button" type="button" id="translate-button">
+              <i class="fa-solid fa-language" aria-hidden="true"></i>
+              <span>翻訳する</span>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <aside class="panel results" id="results" aria-live="polite">
+        <p class="result-empty">翻訳結果がここに表示されます。</p>
+      </aside>
+    </section>
+  </main>
+
+  <script>
+    const GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzBSH540vZK4G62twUfsketq9Pi2RZFocmfcNFwdEVV-IPqHH1Izb0VAFW_SRtN4nbf/exec';
+    const STORAGE_PREFIX = 'tsutaeru_external_interpreter_';
+    const params = new URLSearchParams(location.search);
+    const languages = [
+      { code: 'ja', label: 'JP 日本語', speech: 'ja-JP' },
+      { code: 'pt', label: 'BR ポルトガル語', speech: 'pt-BR' },
+      { code: 'en', label: 'US 英語', speech: 'en-US' },
+      { code: 'es', label: 'ES スペイン語', speech: 'es-ES' },
+      { code: 'vi', label: 'VN ベトナム語', speech: 'vi-VN' },
+      { code: 'zh', label: 'CN 中国語', speech: 'zh-CN' },
+      { code: 'ko', label: 'KR 韓国語', speech: 'ko-KR' },
+      { code: 'tl', label: 'PH フィリピノ語', speech: 'tl-PH' },
+      { code: 'id', label: 'ID インドネシア語', speech: 'id-ID' },
+      { code: 'ne', label: 'NP ネパール語', speech: 'ne-NP' }
+    ];
+
+    let direction = params.get('direction') || localStorage.getItem(STORAGE_PREFIX + 'direction') || 'teacher-to-parent';
+    let recognition = null;
+    let listening = false;
+    let baseTranscript = '';
+
+    const sourceSelect = document.getElementById('source-lang');
+    const targetSelect = document.getElementById('target-lang');
+    const sourceText = document.getElementById('source-text');
+    const micButton = document.getElementById('mic-button');
+    const clearButton = document.getElementById('clear-button');
+    const translateButton = document.getElementById('translate-button');
+    const statusEl = document.getElementById('status');
+    const resultsEl = document.getElementById('results');
+
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+    function escapeHtml(value) {
+      return String(value || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function normalizeText(value) {
+      return String(value || '')
+        .replace(/[\u00a0\u3000]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .replace(/([ぁ-んァ-ヶ一-龠々ー])\s+(?=[ぁ-んァ-ヶ一-龠々ー])/g, '$1')
+        .replace(/([ぁ-んァ-ヶ一-龠々ー])\s+(?=[、。！？!?])/g, '$1')
+        .replace(/([、。！？!?])\s+(?=[ぁ-んァ-ヶ一-龠々ー])/g, '$1')
+        .trim();
+    }
+
+    function getLanguage(code) {
+      return languages.find((language) => language.code === code) || languages[0];
+    }
+
+    function getSpeechCode(code) {
+      return getLanguage(code).speech;
+    }
+
+    function setStatus(message, isError) {
+      statusEl.textContent = message || '';
+      statusEl.classList.toggle('is-error', Boolean(isError));
+    }
+
+    function renderLanguageSelect(select, selectedCode) {
+      select.innerHTML = languages.map((language) => {
+        return '<option value="' + escapeHtml(language.code) + '">' + escapeHtml(language.label) + '</option>';
+      }).join('');
+      select.value = selectedCode;
+    }
+
+    function saveSettings() {
+      localStorage.setItem(STORAGE_PREFIX + 'direction', direction);
+      localStorage.setItem(STORAGE_PREFIX + 'sourceLang', sourceSelect.value);
+      localStorage.setItem(STORAGE_PREFIX + 'targetLang', targetSelect.value);
+    }
+
+    function setDirection(nextDirection, keepLanguages) {
+      const previousSource = sourceSelect.value || 'ja';
+      const previousTarget = targetSelect.value || 'pt';
+
+      direction = nextDirection || 'teacher-to-parent';
+      document.querySelectorAll('[data-direction]').forEach((button) => {
+        button.classList.toggle('is-active', button.dataset.direction === direction);
+      });
+
+      if (!keepLanguages) {
+        if (direction === 'parent-to-teacher') {
+          sourceSelect.value = previousTarget === 'ja' ? 'pt' : previousTarget;
+          targetSelect.value = 'ja';
+        } else {
+          sourceSelect.value = 'ja';
+          targetSelect.value = previousSource === 'ja' ? previousTarget : previousSource;
+          if (targetSelect.value === 'ja') targetSelect.value = 'pt';
+        }
+      }
+
+      updateRecognitionLanguage();
+      saveSettings();
+    }
+
+    function updateRecognitionLanguage() {
+      if (recognition) {
+        recognition.lang = getSpeechCode(sourceSelect.value);
+      }
+    }
+
+    function requestGasJsonp(action, values, timeoutMs) {
+      return new Promise((resolve, reject) => {
+        const callbackName = '__tsutaeruInterpreter_' + Date.now() + '_' + Math.floor(Math.random() * 100000);
+        const script = document.createElement('script');
+        const query = new URLSearchParams();
+        let timer = 0;
+
+        function cleanup() {
+          clearTimeout(timer);
+          delete window[callbackName];
+          script.remove();
+        }
+
+        query.set('action', action);
+        query.set('callback', callbackName);
+        Object.keys(values || {}).forEach((key) => {
+          query.set(key, values[key]);
+        });
+        query.set('_', String(Date.now()));
+
+        window[callbackName] = (result) => {
+          cleanup();
+          resolve(result || { ok: false, message: 'GASから結果が返りませんでした。' });
+        };
+
+        script.onerror = () => {
+          cleanup();
+          reject(new Error('GASへ接続できませんでした。通信を確認してください。'));
+        };
+
+        timer = setTimeout(() => {
+          cleanup();
+          reject(new Error('GASからの応答に時間がかかっています。通信を確認してください。'));
+        }, Math.max(9000, Number(timeoutMs || 25000)));
+
+        script.src = GAS_WEB_APP_URL + '?' + query.toString();
+        document.head.appendChild(script);
+      });
+    }
+
+    function setMicButtonState() {
+      micButton.classList.toggle('is-listening', listening);
+      micButton.setAttribute('aria-label', listening ? 'マイク停止' : 'マイク開始');
+      micButton.innerHTML = listening
+        ? '<i class="fa-solid fa-stop" aria-hidden="true"></i>'
+        : '<i class="fa-solid fa-microphone" aria-hidden="true"></i>';
+    }
+
+    function ensureRecognition() {
+      if (!SpeechRecognition) {
+        setStatus('このブラウザは音声入力に対応していません。Chromeで開いてください。', true);
+        return null;
+      }
+
+      if (recognition) return recognition;
+
+      recognition = new SpeechRecognition();
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      recognition.lang = getSpeechCode(sourceSelect.value);
+
+      recognition.onstart = () => {
+        listening = true;
+        baseTranscript = sourceText.value;
+        setMicButtonState();
+        setStatus('聞き取り中です。', false);
+      };
+
+      recognition.onresult = (event) => {
+        let finalText = '';
+        let interimText = '';
+
+        for (let i = event.resultIndex; i < event.results.length; i += 1) {
+          const transcript = event.results[i][0] ? event.results[i][0].transcript : '';
+          if (event.results[i].isFinal) {
+            finalText += transcript;
+          } else {
+            interimText += transcript;
+          }
+        }
+
+        if (finalText) {
+          baseTranscript = normalizeText((baseTranscript ? baseTranscript + ' ' : '') + finalText);
+        }
+
+        sourceText.value = normalizeText((baseTranscript ? baseTranscript + ' ' : '') + interimText);
+      };
+
+      recognition.onerror = (event) => {
+        const error = event && event.error ? event.error : 'unknown';
+        listening = false;
+        setMicButtonState();
+        setStatus('音声入力で問題が起きました：' + error, true);
+      };
+
+      recognition.onend = () => {
+        listening = false;
+        setMicButtonState();
+        if (!statusEl.classList.contains('is-error')) {
+          setStatus('停止中です。必要なら翻訳してください。', false);
+        }
+      };
+
+      return recognition;
+    }
+
+    function toggleMic() {
+      const nextRecognition = ensureRecognition();
+      if (!nextRecognition) return;
+
+      if (listening) {
+        try {
+          nextRecognition.stop();
+        } catch (error) {
+          listening = false;
+          setMicButtonState();
+        }
+        return;
+      }
+
+      try {
+        setStatus('マイクを準備しています。', false);
+        updateRecognitionLanguage();
+        baseTranscript = sourceText.value;
+        nextRecognition.start();
+      } catch (error) {
+        setStatus('マイクを開始できませんでした。少し待ってもう一度押してください。', true);
+      }
+    }
+
+    function speakText(text, lang) {
+      if (!text || !window.speechSynthesis) return;
+
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = lang;
+      utterance.rate = 0.92;
+      window.speechSynthesis.speak(utterance);
+    }
+
+    function copyText(text) {
+      if (!text) return;
+
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(() => {
+          setStatus('コピーしました。', false);
+        }).catch(() => {
+          setStatus('コピーできませんでした。', true);
+        });
+      }
+    }
+
+    function buildResultCard(title, text, lang, primary) {
+      return (
+        '<article class="result-card' + (primary ? ' is-primary' : '') + '">' +
+          '<div class="result-head">' +
+            '<strong>' + escapeHtml(title) + '</strong>' +
+            '<div class="result-actions">' +
+              '<button class="result-mini-button" type="button" data-copy="' + escapeHtml(text) + '" aria-label="コピー">' +
+                '<i class="fa-regular fa-copy" aria-hidden="true"></i>' +
+              '</button>' +
+              '<button class="result-mini-button" type="button" data-speak="' + escapeHtml(text) + '" data-lang="' + escapeHtml(lang) + '" aria-label="読み上げ">' +
+                '<i class="fa-solid fa-volume-high" aria-hidden="true"></i>' +
+              '</button>' +
+            '</div>' +
+          '</div>' +
+          '<p class="result-text">' + escapeHtml(text) + '</p>' +
+        '</article>'
+      );
+    }
+
+    function bindResultButtons() {
+      resultsEl.querySelectorAll('[data-copy]').forEach((button) => {
+        button.addEventListener('click', () => copyText(button.getAttribute('data-copy')));
+      });
+      resultsEl.querySelectorAll('[data-speak]').forEach((button) => {
+        button.addEventListener('click', () => {
+          speakText(button.getAttribute('data-speak'), button.getAttribute('data-lang'));
+        });
+      });
+    }
+
+    function renderTranslation(response, originalText) {
+      const sourceLang = response.sourceLang || sourceSelect.value;
+      const targetLang = response.targetLang || targetSelect.value;
+      resultsEl.innerHTML =
+        buildResultCard(getLanguage(targetLang).label, response.targetText || '', getSpeechCode(targetLang), true) +
+        buildResultCard(getLanguage(sourceLang).label, originalText || response.sourceText || '', getSpeechCode(sourceLang), false) +
+        buildResultCard('US 英語', response.englishText || '', 'en-US', false);
+      bindResultButtons();
+      speakText(response.targetText || '', getSpeechCode(targetLang));
+    }
+
+    function persistTranslationInBackground(response) {
+      if (!response || !response.ok) return;
+
+      const hasCacheEntries = Array.isArray(response.cacheEntries) && response.cacheEntries.length;
+      const hasBankPayload = response.sourceText && response.englishText && response.targetText;
+
+      if (!hasCacheEntries && !hasBankPayload && !Number(response.usageCount || 0)) return;
+
+      requestGasJsonp('persistExternalInterpreterTranslation', {
+        entriesJson: JSON.stringify(hasCacheEntries ? response.cacheEntries : []),
+        usageCount: String(Number(response.usageCount || 0)),
+        bankJson: JSON.stringify(hasBankPayload ? {
+          sourceLang: response.sourceLang,
+          targetLang: response.targetLang,
+          sourceText: response.sourceText,
+          englishText: response.englishText,
+          targetText: response.targetText
+        } : null)
+      }, 25000).catch(() => {});
+    }
+
+    function translateText() {
+      const text = normalizeText(sourceText.value);
+      const sourceLang = sourceSelect.value;
+      const targetLang = targetSelect.value;
+
+      if (!text) {
+        setStatus('文章を入力してから翻訳してください。', true);
+        return;
+      }
+
+      if (sourceLang === targetLang) {
+        setStatus('入力する言語と翻訳する言語を別々にしてください。', true);
+        return;
+      }
+
+      translateButton.disabled = true;
+      translateButton.innerHTML = '<i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i><span>翻訳中</span>';
+      setStatus('翻訳しています。', false);
+      resultsEl.innerHTML = '<p class="result-empty is-loading-text"><i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i><span>翻訳中です。</span></p>';
+
+      requestGasJsonp('translateExternalInterpreter', {
+        text: text,
+        sourceLang: sourceLang,
+        targetLang: targetLang
+      }, 30000).then((response) => {
+        if (!response || !response.ok) {
+          throw new Error(response && response.message ? response.message : '翻訳に失敗しました。');
+        }
+
+        renderTranslation(response, text);
+        persistTranslationInBackground(response);
+        setStatus(response.fromTranslationBank ? '翻訳バンクから表示しました。' : '翻訳しました。', false);
+      }).catch((error) => {
+        resultsEl.innerHTML = '<p class="result-empty">翻訳結果がここに表示されます。</p>';
+        setStatus(error && error.message ? error.message : '翻訳に失敗しました。', true);
+      }).finally(() => {
+        translateButton.disabled = false;
+        translateButton.innerHTML = '<i class="fa-solid fa-language" aria-hidden="true"></i><span>翻訳する</span>';
+      });
+    }
+
+    function initialize() {
+      const savedSource = params.get('sourceLang') || localStorage.getItem(STORAGE_PREFIX + 'sourceLang') || 'ja';
+      const savedTarget = params.get('targetLang') || localStorage.getItem(STORAGE_PREFIX + 'targetLang') || 'pt';
+
+      renderLanguageSelect(sourceSelect, savedSource);
+      renderLanguageSelect(targetSelect, savedTarget);
+      sourceText.value = params.get('text') || '';
+      setDirection(direction, true);
+
+      document.querySelectorAll('[data-direction]').forEach((button) => {
+        button.addEventListener('click', () => setDirection(button.dataset.direction, false));
+      });
+
+      sourceSelect.addEventListener('change', () => {
+        updateRecognitionLanguage();
+        saveSettings();
+      });
+
+      targetSelect.addEventListener('change', saveSettings);
+      micButton.addEventListener('click', toggleMic);
+      translateButton.addEventListener('click', translateText);
+      clearButton.addEventListener('click', () => {
+        sourceText.value = '';
+        baseTranscript = '';
+        resultsEl.innerHTML = '<p class="result-empty">翻訳結果がここに表示されます。</p>';
+        setStatus('消しました。', false);
+      });
+
+      if (!SpeechRecognition) {
+        setStatus('このブラウザは音声入力に対応していません。Chromeで開いてください。', true);
+      }
+    }
+
+    initialize();
+  </script>
+</body>
+</html>
