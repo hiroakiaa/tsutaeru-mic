@@ -1377,19 +1377,9 @@
       if (!text && !force) return;
 
       if (text) {
-        setStatus(
-          hasOpenedRoom
-            ? '音声を送信しています。'
-            : 'マイク入力中です。ルーム準備後に自動送信します。',
-          false
-        );
+        setStatus('音声を送信しています。', false);
       } else if (force) {
-        setStatus(
-          hasOpenedRoom
-            ? '残りの音声を授業ログに確定します。'
-            : 'ルーム準備後に、残りの音声を確定します。',
-          false
-        );
+        setStatus('残りの音声を授業ログに確定します。', false);
       }
 
       if (text && historyId) {
@@ -1397,16 +1387,7 @@
       }
 
       lessonSendChain = lessonSendChain.catch(() => true).then(() => {
-        const roomReady = hasOpenedRoom
-          ? Promise.resolve(true)
-          : (openRoomPromise || openExternalLessonRoom());
-
-        return roomReady.then((opened) => {
-          if (!opened) {
-            throw new Error('room-open-failed');
-          }
-
-          return postToGas('appendLessonMicLog', {
+        return postToGas('appendLessonMicLog', {
             roomId: roomId,
             roomKey: roomKey,
             sessionId: sessionId,
@@ -1414,14 +1395,23 @@
             jaText: text,
             force: force ? '1' : '0',
             clientEventId: historyId || ''
-          }, 30000);
-        }).then((result) => {
+          }, 15000).then((result) => {
           if (!result || !result.ok) {
             throw new Error(result && result.message ? result.message : '授業ログを保存できませんでした。');
           }
 
+          if (result.roomKey) {
+            roomKey = String(result.roomKey || roomKey).trim();
+            hasOpenedRoom = true;
+            saveExternalMicSettings();
+            startLessonHeartbeat();
+          }
+
           if (result.log && result.log.roomKey) {
             roomKey = String(result.log.roomKey || roomKey).trim();
+            hasOpenedRoom = true;
+            saveExternalMicSettings();
+            startLessonHeartbeat();
           }
 
           if (text && result.duplicate) {
@@ -1437,15 +1427,10 @@
           }
 
           if (text) {
-            postToGas('prepareRecentLessonLogTranslationFormulas', {
-              roomId: roomId,
-              roomKey: roomKey,
-              limit: '3'
-            }, 12000).catch(() => {});
             sentCount += 1;
             sentCountEl.textContent = sentCount + '件';
             markSentHistoryDone(historyId);
-            setStatus('送信しました。生徒側では翻訳が終わった文を最大3文まとめて表示します。', false);
+            setStatus('送信しました。生徒側に順番に表示されます。', false);
           } else if (force) {
             setStatus('残りの音声を授業ログに確定しました。', false);
           }
@@ -1501,12 +1486,7 @@
         startButton.setAttribute('aria-label', '停止');
         startButton.innerHTML = '<i class="fa-solid fa-stop" aria-hidden="true"></i>';
         historyActionsEl.hidden = false;
-        setStatus(
-          hasOpenedRoom
-            ? 'マイク入力中です。'
-            : 'マイク入力中です。ルーム準備後に自動送信します。',
-          false
-        );
+        setStatus('マイク入力中です。話した文から順に送信します。', false);
         setHistoryEmptyMessage('マイク入力中です。話した文がここに表示され、つたえる君へ送信されます。');
       };
 
@@ -1573,10 +1553,8 @@
 
       setMicPreparing(true);
 
-      const roomReadyPromise = openExternalLessonRoom();
-
       ensureMicrophonePermission().then((allowed) => {
-        if (!allowed || roomOpenFailed) {
+        if (!allowed) {
           setMicPreparing(false);
           return;
         }
@@ -1593,15 +1571,6 @@
       }).catch(() => {
         setMicPreparing(false);
         setStatus('マイクを準備できませんでした。通信とマイク許可を確認してください。', true);
-      });
-
-      roomReadyPromise.then((opened) => {
-        if (opened) return;
-        setMicPreparing(false);
-        if (running) {
-          running = false;
-          if (recognition) recognition.stop();
-        }
       });
     }
 
