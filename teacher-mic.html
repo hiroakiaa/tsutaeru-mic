@@ -1204,6 +1204,12 @@
         sessionId: sessionId,
         clientEventId: historyId
       }, 12000).then((result) => {
+        if (result && result.roomKey) {
+          roomKey = String(result.roomKey || roomKey).trim();
+          hasOpenedRoom = true;
+          saveExternalMicSettings();
+          startLessonHeartbeat();
+        }
         return Boolean(result && result.ok && result.saved);
       }).catch(() => false);
     }
@@ -1395,7 +1401,7 @@
             jaText: text,
             force: force ? '1' : '0',
             clientEventId: historyId || ''
-          }, 15000).then((result) => {
+          }, 30000).then((result) => {
           if (!result || !result.ok) {
             throw new Error(result && result.message ? result.message : '授業ログを保存できませんでした。');
           }
