@@ -379,6 +379,11 @@
       background: rgba(40, 215, 195, 0.06);
     }
 
+    .result-set.is-error {
+      border-color: rgba(255, 120, 144, 0.62);
+      background: rgba(255, 120, 144, 0.07);
+    }
+
     @keyframes slideResultIn {
       from {
         opacity: 0;
@@ -451,6 +456,28 @@
     .result-mini-button.is-playing {
       color: #002a25;
       background: var(--main);
+    }
+
+    .result-show-button,
+    .result-retry-button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      min-height: 40px;
+      padding: 0 13px;
+      color: #002a25;
+      background: var(--main);
+      border-radius: 999px;
+      font-size: 0.9rem;
+      font-weight: 1000;
+      white-space: nowrap;
+    }
+
+    .result-retry-button {
+      color: var(--danger);
+      background: rgba(255, 120, 144, 0.1);
+      border: 1px solid rgba(255, 120, 144, 0.54);
     }
 
     .speech-slider {
@@ -537,6 +564,70 @@
       background: transparent;
       border-radius: 999px;
       font-weight: 900;
+    }
+
+    .show-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 70;
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr);
+      gap: 16px;
+      padding: clamp(16px, 4vw, 36px);
+      padding-bottom: calc(clamp(16px, 4vw, 36px) + env(safe-area-inset-bottom));
+      background:
+        radial-gradient(circle at top left, rgba(40, 215, 195, 0.18), transparent 36%),
+        #010605;
+    }
+
+    .show-modal[hidden] {
+      display: none;
+    }
+
+    .show-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .show-title {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      margin: 0;
+      color: var(--main);
+      font-size: clamp(1rem, 4vw, 1.4rem);
+      font-weight: 1000;
+    }
+
+    .show-body {
+      display: grid;
+      align-content: center;
+      gap: 20px;
+      min-height: 0;
+      padding: clamp(22px, 5vw, 54px);
+      background: rgba(7, 22, 18, 0.9);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: 0 26px 80px rgba(0, 0, 0, 0.34);
+    }
+
+    .show-text {
+      margin: 0;
+      color: var(--text);
+      font-size: clamp(2rem, 8vw, 5.2rem);
+      font-weight: 900;
+      line-height: 1.5;
+      overflow-wrap: anywhere;
+      white-space: pre-wrap;
+    }
+
+    .show-actions {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 10px;
     }
 
     .order-toggle button.is-active {
@@ -665,6 +756,7 @@
       .result-actions {
         width: 100%;
         min-width: 0;
+        flex-wrap: wrap;
       }
 
       .modal-head {
@@ -725,7 +817,7 @@
     <section class="main-grid">
       <section class="panel input-panel" aria-label="入力">
         <div class="text-wrap">
-          <textarea id="source-text" maxlength="900" placeholder="右下のマイクを押して話してください。入力された文を確認して、翻訳します。"></textarea>
+          <textarea id="source-text" maxlength="900" placeholder="右下のマイクを押して、短い文で話してください。入力された文を確認して翻訳します。"></textarea>
         </div>
         <div class="input-actions">
           <div class="left-actions">
@@ -768,6 +860,26 @@
     <div class="modal-results" id="modal-results" aria-live="polite"></div>
   </section>
 
+  <section class="show-modal" id="show-modal" aria-labelledby="show-modal-title" aria-modal="true" role="dialog" hidden>
+    <header class="show-head">
+      <h2 class="show-title" id="show-modal-title">
+        <i class="fa-solid fa-display" aria-hidden="true"></i>
+        <span id="show-modal-label">相手に見せる</span>
+      </h2>
+      <button class="modal-close" type="button" id="show-modal-close" aria-label="閉じる">
+        <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+      </button>
+    </header>
+    <div class="show-body">
+      <p class="show-text" id="show-modal-text"></p>
+      <div class="show-actions">
+        <button class="result-mini-button" type="button" id="show-modal-speak" aria-label="読み上げ">
+          <i class="fa-solid fa-volume-high" aria-hidden="true"></i>
+        </button>
+      </div>
+    </div>
+  </section>
+
   <script>
     const GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzBSH540vZK4G62twUfsketq9Pi2RZFocmfcNFwdEVV-IPqHH1Izb0VAFW_SRtN4nbf/exec';
     const STORAGE_PREFIX = 'tsutaeru_external_interpreter_';
@@ -791,6 +903,7 @@
     let baseTranscript = '';
     let translationHistory = [];
     let translationOrder = 'newest';
+    let showSpeechPayload = { text: '', lang: 'ja-JP' };
     let speechState = {
       utterance: null,
       cardId: '',
@@ -815,8 +928,30 @@
     const modalClose = document.getElementById('translation-modal-close');
     const orderNewest = document.getElementById('order-newest');
     const orderOldest = document.getElementById('order-oldest');
+    const showModal = document.getElementById('show-modal');
+    const showModalClose = document.getElementById('show-modal-close');
+    const showModalText = document.getElementById('show-modal-text');
+    const showModalLabel = document.getElementById('show-modal-label');
+    const showModalSpeak = document.getElementById('show-modal-speak');
 
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const SCHOOL_TEXT_FIXES = [
+      ['復讐', '復習'],
+      ['溶けた人', '解けた人'],
+      ['解けた人は先生に店に来て', '解けた人は先生に見せに来て'],
+      ['先生に店に来て', '先生に見せに来て'],
+      ['教科書を開きましょう', '教科書を開きましょう。'],
+      ['問いの位置', '問1'],
+      ['問の位置', '問1'],
+      ['かっこ 1番', '1番'],
+      ['かっこ 2番', '2番'],
+      ['かっこ 3番', '3番'],
+      ['かっこ 4番', '4番'],
+      ['かっこ 5番', '5番'],
+      ['かっこ 6番', '6番'],
+      ['丸をもらった', '丸をつけてもらった'],
+      ['答えではなくヒントを上げて', '答えではなくヒントをあげて']
+    ];
 
     function escapeHtml(value) {
       return String(value || '')
@@ -834,6 +969,21 @@
         .replace(/([ぁ-んァ-ヶ一-龠々ー])\s+(?=[ぁ-んァ-ヶ一-龠々ー])/g, '$1')
         .replace(/([ぁ-んァ-ヶ一-龠々ー])\s+(?=[、。！？!?])/g, '$1')
         .replace(/([、。！？!?])\s+(?=[ぁ-んァ-ヶ一-龠々ー])/g, '$1')
+        .trim();
+    }
+
+    function prepareTextForTranslation(value) {
+      let text = normalizeText(value);
+
+      SCHOOL_TEXT_FIXES.forEach(([from, to]) => {
+        text = text.split(from).join(to);
+      });
+
+      return normalizeText(text)
+        .replace(/([。！？!?]){2,}/g, '$1')
+        .replace(/([ぁ-んァ-ヶ一-龠々ー])さて/g, '$1。さて')
+        .replace(/([ぁ-んァ-ヶ一-龠々ー])まず/g, '$1。まず')
+        .replace(/^。+/, '')
         .trim();
     }
 
@@ -1194,6 +1344,9 @@
           '<div class="result-head">' +
             '<strong>' + escapeHtml(title) + '</strong>' +
             '<div class="result-actions">' +
+              '<button class="result-show-button" type="button" data-show-text="' + escapeHtml(text) + '" data-show-lang="' + escapeHtml(lang) + '" data-show-label="' + escapeHtml(title) + '">' +
+                '<i class="fa-solid fa-display" aria-hidden="true"></i><span>見せる</span>' +
+              '</button>' +
               '<button class="result-mini-button" type="button" data-speech-toggle="' + escapeHtml(cardId) + '" data-text="' + escapeHtml(text) + '" data-lang="' + escapeHtml(lang) + '" aria-label="再生">' +
                 '<i class="fa-solid fa-play" aria-hidden="true"></i>' +
               '</button>' +
@@ -1234,30 +1387,65 @@
           seekSpeech(slider.dataset.speechSlider, slider.value);
         });
       });
+
+      document.querySelectorAll('[data-show-text]').forEach((button) => {
+        button.addEventListener('click', () => {
+          openShowModal(button.dataset.showText || '', button.dataset.showLang || 'ja-JP', button.dataset.showLabel || '相手に見せる');
+        });
+      });
+
+      document.querySelectorAll('[data-retry-translation]').forEach((button) => {
+        button.addEventListener('click', () => retryTranslation(Number(button.dataset.retryTranslation || 0)));
+      });
     }
 
     function buildResultSetHtml(item) {
       const response = item.response;
+      const itemDirection = item.direction || direction;
       const originalText = item.originalText || response.sourceText || '';
       const sourceLang = response.sourceLang || sourceSelect.value;
       const targetLang = response.targetLang || targetSelect.value;
       const jaText = sourceLang === 'ja'
         ? originalText
-        : (targetLang === 'ja' ? response.targetText || '' : '');
+        : (targetLang === 'ja' ? response.targetText || '' : response.japaneseText || '');
       const motherLang = sourceLang !== 'ja' && sourceLang !== 'en'
         ? sourceLang
         : (targetLang !== 'ja' && targetLang !== 'en' ? targetLang : targetLang);
       const motherText = motherLang === sourceLang
         ? originalText
         : (motherLang === targetLang ? response.targetText || '' : '');
+      const cards = [
+        {
+          key: 'mother',
+          title: getLanguage(motherLang).label,
+          text: motherText,
+          lang: getSpeechCode(motherLang),
+          primary: direction === 'teacher-to-parent'
+        },
+        {
+          key: 'ja',
+          title: 'JP 日本語',
+          text: jaText,
+          lang: 'ja-JP',
+          primary: direction === 'parent-to-teacher'
+        },
+        {
+          key: 'en',
+          title: 'US 英語',
+          text: response.englishText || '',
+          lang: 'en-US',
+          primary: false
+        }
+      ];
+      const orderedCards = itemDirection === 'parent-to-teacher'
+        ? [cards[1], cards[2], cards[0]]
+        : [cards[0], cards[2], cards[1]];
 
       return (
         '<section class="result-set" data-result-id="result-' + escapeHtml(item.number) + '">' +
           '<span class="result-number">#' + escapeHtml(item.number) + '</span>' +
           '<p class="result-set-title">' + escapeHtml(item.createdAt) + '</p>' +
-          buildResultCard(getLanguage(motherLang).label, motherText, getSpeechCode(motherLang), true, 'result-' + item.number + '-mother') +
-          buildResultCard('JP 日本語', jaText, 'ja-JP', false, 'result-' + item.number + '-ja') +
-          buildResultCard('US 英語', response.englishText || '', 'en-US', false, 'result-' + item.number + '-en') +
+          orderedCards.map((card) => buildResultCard(card.title, card.text, card.lang, card.primary, 'result-' + item.number + '-' + card.key)).join('') +
         '</section>'
       );
     }
@@ -1267,7 +1455,9 @@
         number: translationHistory.length + 1,
         createdAt: new Date().toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' }),
         originalText: text,
+        direction: direction,
         pending: true,
+        error: false,
         response: {
           sourceLang: sourceLang,
           targetLang: targetLang,
@@ -1296,6 +1486,8 @@
       modalResults.innerHTML = items.length
         ? items.map((item) => item.pending
             ? '<section class="result-set is-pending" data-result-id="result-' + escapeHtml(item.number) + '"><span class="result-number">#' + escapeHtml(item.number) + '</span><p class="result-set-title">' + escapeHtml(item.createdAt) + '</p><div class="modal-loading"><i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i><span>翻訳中です。</span></div><p class="result-text">' + escapeHtml(item.originalText || '') + '</p></section>'
+            : item.error
+              ? '<section class="result-set is-error" data-result-id="result-' + escapeHtml(item.number) + '"><span class="result-number">#' + escapeHtml(item.number) + '</span><p class="result-set-title">' + escapeHtml(item.createdAt) + '</p><div class="modal-loading"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i><span>翻訳に失敗しました。文を短くすると通りやすいです。</span></div><p class="result-text">' + escapeHtml(item.originalText || '') + '</p><button class="result-retry-button" type="button" data-retry-translation="' + escapeHtml(item.number) + '"><i class="fa-solid fa-rotate-right" aria-hidden="true"></i><span>もう一度翻訳する</span></button></section>'
             : buildResultSetHtml(item)
           ).join('')
         : '<p class="result-empty">翻訳結果がここに表示されます。</p>';
@@ -1330,7 +1522,9 @@
 
     function closeTranslationModal() {
       translationModal.hidden = true;
-      document.body.style.overflow = '';
+      if (showModal.hidden) {
+        document.body.style.overflow = '';
+      }
     }
 
     function renderTranslation(response, originalText, activePendingItem) {
@@ -1339,20 +1533,46 @@
 
       if (pendingItem) {
         pendingItem.pending = false;
+        pendingItem.error = false;
         pendingItem.response = response;
         pendingItem.originalText = originalText;
+        pendingItem.direction = pendingItem.direction || direction;
       } else {
         translationHistory.push({
           number: translationHistory.length + 1,
           createdAt: new Date().toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' }),
           response: response,
-          originalText: originalText
+          originalText: originalText,
+          direction: direction,
+          pending: false,
+          error: false
         });
       }
 
       renderTranslationHistory();
       openTranslationModal();
-      playSpeech('result-' + (pendingItem ? pendingItem.number : translationHistory.length) + '-mother', response.targetText || '', getSpeechCode(targetLang));
+      const itemNumber = pendingItem ? pendingItem.number : translationHistory.length;
+      const itemDirection = pendingItem ? pendingItem.direction : direction;
+      const playCardKey = itemDirection === 'parent-to-teacher'
+        ? 'ja'
+        : 'mother';
+      playSpeech('result-' + itemNumber + '-' + playCardKey, response.targetText || '', getSpeechCode(targetLang));
+    }
+
+    function openShowModal(text, lang, label) {
+      showSpeechPayload = { text: text || '', lang: lang || 'ja-JP' };
+      showModalLabel.textContent = label || '相手に見せる';
+      showModalText.textContent = text || '';
+      showModal.hidden = false;
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeShowModal() {
+      stopSpeech();
+      showModal.hidden = true;
+      if (translationModal.hidden) {
+        document.body.style.overflow = '';
+      }
     }
 
     function persistTranslationInBackground(response) {
@@ -1376,27 +1596,10 @@
       }, 25000).catch(() => {});
     }
 
-    function translateText() {
-      const text = normalizeText(sourceText.value);
-      const sourceLang = sourceSelect.value;
-      const targetLang = targetSelect.value;
-
-      if (!text) {
-        setStatus('文章を入力してから翻訳してください。', true);
-        return;
-      }
-
-      if (sourceLang === targetLang) {
-        setStatus('入力する言語と翻訳する言語を別々にしてください。', true);
-        return;
-      }
-
-      isTranslating = true;
-      translateButton.disabled = true;
-      translateButton.innerHTML = '<i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i><span>翻訳中</span>';
-      setStatus('翻訳しています。', false);
-      const pendingItem = addPendingTranslation(text, sourceLang, targetLang);
-
+    function requestAndRenderTranslation(pendingItem) {
+      const text = pendingItem.originalText;
+      const sourceLang = pendingItem.response.sourceLang;
+      const targetLang = pendingItem.response.targetLang;
       Promise.all([
         requestGasJsonp('translateExternalInterpreter', {
           text: text,
@@ -1415,7 +1618,9 @@
       }).catch((error) => {
         if (pendingItem) {
           pendingItem.pending = false;
-          pendingItem.response.targetText = '翻訳に失敗しました。';
+          pendingItem.error = true;
+          pendingItem.errorMessage = error && error.message ? error.message : '翻訳に失敗しました。';
+          pendingItem.response.targetText = '';
           pendingItem.response.englishText = '';
           renderTranslationHistory();
         }
@@ -1428,6 +1633,46 @@
         updateTranslateButtonState();
         translateButton.innerHTML = '<i class="fa-solid fa-language" aria-hidden="true"></i><span>翻訳する</span>';
       });
+    }
+
+    function translateText() {
+      const text = prepareTextForTranslation(sourceText.value);
+      const sourceLang = sourceSelect.value;
+      const targetLang = targetSelect.value;
+
+      if (!text) {
+        setStatus('文章を入力してから翻訳してください。', true);
+        return;
+      }
+
+      if (sourceLang === targetLang) {
+        setStatus('入力する言語と翻訳する言語を別々にしてください。', true);
+        return;
+      }
+
+      sourceText.value = text;
+      isTranslating = true;
+      translateButton.disabled = true;
+      translateButton.innerHTML = '<i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i><span>翻訳中</span>';
+      setStatus('翻訳しています。', false);
+      const pendingItem = addPendingTranslation(text, sourceLang, targetLang);
+
+      requestAndRenderTranslation(pendingItem);
+    }
+
+    function retryTranslation(number) {
+      const item = translationHistory.find((historyItem) => historyItem.number === number);
+      if (!item || isTranslating) return;
+
+      item.pending = true;
+      item.error = false;
+      isTranslating = true;
+      translateButton.disabled = true;
+      translateButton.innerHTML = '<i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i><span>翻訳中</span>';
+      setStatus('もう一度翻訳しています。', false);
+      renderTranslationHistory();
+      openTranslationModal();
+      requestAndRenderTranslation(item);
     }
 
     function initialize() {
@@ -1460,6 +1705,10 @@
       });
 
       modalClose.addEventListener('click', closeTranslationModal);
+      showModalClose.addEventListener('click', closeShowModal);
+      showModalSpeak.addEventListener('click', () => {
+        playSpeech('show-modal-text', showSpeechPayload.text, showSpeechPayload.lang);
+      });
       orderNewest.addEventListener('click', () => {
         translationOrder = 'newest';
         renderTranslationHistory();
