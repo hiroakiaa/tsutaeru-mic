@@ -209,7 +209,7 @@
 
     .main-grid {
       display: grid;
-      grid-template-columns: minmax(0, 1fr) 320px;
+      grid-template-columns: minmax(0, 1fr);
       gap: 14px;
       min-height: 0;
     }
@@ -224,7 +224,7 @@
 
     .input-panel {
       display: grid;
-      grid-template-rows: minmax(220px, 1fr) auto;
+      grid-template-rows: minmax(180px, 0.62fr) auto;
       min-height: 0;
     }
 
@@ -237,7 +237,7 @@
       display: block;
       width: 100%;
       height: 100%;
-      min-height: 260px;
+      min-height: 190px;
       resize: none;
       color: var(--text);
       background: #020a08;
@@ -257,7 +257,7 @@
       align-items: center;
       justify-content: space-between;
       gap: 10px;
-      padding: 12px;
+      padding: 10px 12px;
       border-top: 1px solid rgba(40, 215, 195, 0.2);
       background: #010605;
     }
@@ -312,12 +312,7 @@
     }
 
     .results {
-      display: grid;
-      align-content: start;
-      gap: 12px;
-      min-height: 0;
-      padding: 14px;
-      overflow: auto;
+      display: none;
     }
 
     .result-empty {
@@ -333,6 +328,39 @@
       background: #020a08;
       border: 1px solid rgba(40, 215, 195, 0.28);
       border-radius: 20px;
+    }
+
+    .result-set {
+      position: relative;
+      display: grid;
+      gap: 12px;
+      padding: 18px;
+      background: rgba(7, 22, 18, 0.94);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: 0 18px 54px rgba(0, 0, 0, 0.24);
+    }
+
+    .result-number {
+      position: absolute;
+      top: 14px;
+      left: 14px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 44px;
+      height: 30px;
+      color: #002a25;
+      background: var(--main);
+      border-radius: 999px;
+      font-weight: 1000;
+    }
+
+    .result-set-title {
+      margin: 0 0 2px 56px;
+      color: var(--muted);
+      font-size: 0.86rem;
+      font-weight: 900;
     }
 
     .result-card.is-primary {
@@ -384,6 +412,86 @@
       gap: 8px;
     }
 
+    .translation-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 50;
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr);
+      padding: 14px;
+      padding-bottom: calc(14px + env(safe-area-inset-bottom));
+      background: rgba(1, 6, 5, 0.96);
+    }
+
+    .translation-modal[hidden] {
+      display: none;
+    }
+
+    .modal-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 10px 4px 14px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .modal-title {
+      margin: 0;
+      font-size: clamp(1rem, 4vw, 1.35rem);
+      font-weight: 1000;
+    }
+
+    .modal-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .order-toggle {
+      display: inline-grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      min-width: min(320px, 58vw);
+      padding: 4px;
+      background: #020a08;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+    }
+
+    .order-toggle button {
+      min-height: 38px;
+      color: var(--muted);
+      background: transparent;
+      border-radius: 999px;
+      font-weight: 900;
+    }
+
+    .order-toggle button.is-active {
+      color: #002a25;
+      background: var(--main);
+    }
+
+    .modal-close {
+      display: grid;
+      place-items: center;
+      width: 44px;
+      height: 44px;
+      min-width: 44px;
+      color: var(--text);
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid var(--line);
+      border-radius: 50%;
+      font-size: 1.2rem;
+    }
+
+    .modal-results {
+      display: grid;
+      align-content: start;
+      gap: 14px;
+      padding: 16px 2px 4px;
+      overflow: auto;
+    }
+
     @media (max-width: 820px) {
       body {
         padding: 10px;
@@ -395,7 +503,7 @@
       }
 
       .toolbar {
-        grid-template-columns: 1fr;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
         padding: 10px;
         border-radius: 22px;
       }
@@ -419,8 +527,18 @@
         grid-template-columns: 1fr;
       }
 
+      .field span {
+        font-size: 0.78rem;
+      }
+
+      .select {
+        min-height: 48px;
+        padding-inline: 10px;
+        font-size: 16px;
+      }
+
       .input-panel {
-        min-height: 420px;
+        min-height: 330px;
       }
 
       .input-actions {
@@ -438,12 +556,23 @@
       }
 
       .sub-button {
-        flex: 1 1 auto;
+        flex: 0 0 auto;
+        margin-left: auto;
+        padding-inline: 18px;
       }
 
-      .results {
-        max-height: none;
-        overflow: visible;
+      .modal-head {
+        align-items: stretch;
+        flex-direction: column;
+      }
+
+      .modal-actions {
+        width: 100%;
+      }
+
+      .order-toggle {
+        flex: 1 1 auto;
+        min-width: 0;
       }
     }
   </style>
@@ -517,6 +646,22 @@
     </section>
   </main>
 
+  <section class="translation-modal" id="translation-modal" aria-labelledby="translation-modal-title" aria-modal="true" role="dialog" hidden>
+    <header class="modal-head">
+      <h2 class="modal-title" id="translation-modal-title">翻訳結果</h2>
+      <div class="modal-actions">
+        <div class="order-toggle" aria-label="翻訳結果の並び順">
+          <button class="is-active" type="button" id="order-newest">最新順</button>
+          <button type="button" id="order-oldest">最初から</button>
+        </div>
+        <button class="modal-close" type="button" id="translation-modal-close" aria-label="閉じる">
+          <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+        </button>
+      </div>
+    </header>
+    <div class="modal-results" id="modal-results" aria-live="polite"></div>
+  </section>
+
   <script>
     const GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzBSH540vZK4G62twUfsketq9Pi2RZFocmfcNFwdEVV-IPqHH1Izb0VAFW_SRtN4nbf/exec';
     const STORAGE_PREFIX = 'tsutaeru_external_interpreter_';
@@ -538,6 +683,8 @@
     let recognition = null;
     let listening = false;
     let baseTranscript = '';
+    let translationHistory = [];
+    let translationOrder = 'newest';
 
     const sourceSelect = document.getElementById('source-lang');
     const targetSelect = document.getElementById('target-lang');
@@ -547,6 +694,11 @@
     const translateButton = document.getElementById('translate-button');
     const statusEl = document.getElementById('status');
     const resultsEl = document.getElementById('results');
+    const translationModal = document.getElementById('translation-modal');
+    const modalResults = document.getElementById('modal-results');
+    const modalClose = document.getElementById('translation-modal-close');
+    const orderNewest = document.getElementById('order-newest');
+    const orderOldest = document.getElementById('order-oldest');
 
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
@@ -765,27 +917,12 @@
       window.speechSynthesis.speak(utterance);
     }
 
-    function copyText(text) {
-      if (!text) return;
-
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(text).then(() => {
-          setStatus('コピーしました。', false);
-        }).catch(() => {
-          setStatus('コピーできませんでした。', true);
-        });
-      }
-    }
-
     function buildResultCard(title, text, lang, primary) {
       return (
         '<article class="result-card' + (primary ? ' is-primary' : '') + '">' +
           '<div class="result-head">' +
             '<strong>' + escapeHtml(title) + '</strong>' +
             '<div class="result-actions">' +
-              '<button class="result-mini-button" type="button" data-copy="' + escapeHtml(text) + '" aria-label="コピー">' +
-                '<i class="fa-regular fa-copy" aria-hidden="true"></i>' +
-              '</button>' +
               '<button class="result-mini-button" type="button" data-speak="' + escapeHtml(text) + '" data-lang="' + escapeHtml(lang) + '" aria-label="読み上げ">' +
                 '<i class="fa-solid fa-volume-high" aria-hidden="true"></i>' +
               '</button>' +
@@ -797,24 +934,76 @@
     }
 
     function bindResultButtons() {
-      resultsEl.querySelectorAll('[data-copy]').forEach((button) => {
-        button.addEventListener('click', () => copyText(button.getAttribute('data-copy')));
-      });
-      resultsEl.querySelectorAll('[data-speak]').forEach((button) => {
+      document.querySelectorAll('[data-speak]').forEach((button) => {
         button.addEventListener('click', () => {
           speakText(button.getAttribute('data-speak'), button.getAttribute('data-lang'));
         });
       });
     }
 
-    function renderTranslation(response, originalText) {
+    function buildResultSetHtml(item) {
+      const response = item.response;
+      const originalText = item.originalText || response.sourceText || '';
       const sourceLang = response.sourceLang || sourceSelect.value;
       const targetLang = response.targetLang || targetSelect.value;
-      resultsEl.innerHTML =
-        buildResultCard(getLanguage(targetLang).label, response.targetText || '', getSpeechCode(targetLang), true) +
-        buildResultCard(getLanguage(sourceLang).label, originalText || response.sourceText || '', getSpeechCode(sourceLang), false) +
-        buildResultCard('US 英語', response.englishText || '', 'en-US', false);
+      const jaText = sourceLang === 'ja'
+        ? originalText
+        : (targetLang === 'ja' ? response.targetText || '' : '');
+      const motherLang = sourceLang !== 'ja' && sourceLang !== 'en'
+        ? sourceLang
+        : (targetLang !== 'ja' && targetLang !== 'en' ? targetLang : targetLang);
+      const motherText = motherLang === sourceLang
+        ? originalText
+        : (motherLang === targetLang ? response.targetText || '' : '');
+
+      return (
+        '<section class="result-set">' +
+          '<span class="result-number">#' + escapeHtml(item.number) + '</span>' +
+          '<p class="result-set-title">' + escapeHtml(item.createdAt) + '</p>' +
+          buildResultCard(getLanguage(motherLang).label, motherText, getSpeechCode(motherLang), true) +
+          buildResultCard('JP 日本語', jaText, 'ja-JP', false) +
+          buildResultCard('US 英語', response.englishText || '', 'en-US', false) +
+        '</section>'
+      );
+    }
+
+    function renderTranslationHistory() {
+      const items = translationOrder === 'oldest'
+        ? translationHistory.slice()
+        : translationHistory.slice().reverse();
+
+      modalResults.innerHTML = items.length
+        ? items.map(buildResultSetHtml).join('')
+        : '<p class="result-empty">翻訳結果がここに表示されます。</p>';
+
+      orderNewest.classList.toggle('is-active', translationOrder === 'newest');
+      orderOldest.classList.toggle('is-active', translationOrder === 'oldest');
       bindResultButtons();
+    }
+
+    function openTranslationModal() {
+      translationModal.hidden = false;
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeTranslationModal() {
+      translationModal.hidden = true;
+      document.body.style.overflow = '';
+    }
+
+    function renderTranslation(response, originalText) {
+      const targetLang = response.targetLang || targetSelect.value;
+      const createdAt = new Date().toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
+
+      translationHistory.push({
+        number: translationHistory.length + 1,
+        createdAt: createdAt,
+        response: response,
+        originalText: originalText
+      });
+
+      renderTranslationHistory();
+      openTranslationModal();
       speakText(response.targetText || '', getSpeechCode(targetLang));
     }
 
@@ -872,7 +1061,9 @@
         persistTranslationInBackground(response);
         setStatus(response.fromTranslationBank ? '翻訳バンクから表示しました。' : '翻訳しました。', false);
       }).catch((error) => {
-        resultsEl.innerHTML = '<p class="result-empty">翻訳結果がここに表示されます。</p>';
+        if (!translationHistory.length) {
+          modalResults.innerHTML = '<p class="result-empty">翻訳結果がここに表示されます。</p>';
+        }
         setStatus(error && error.message ? error.message : '翻訳に失敗しました。', true);
       }).finally(() => {
         translateButton.disabled = false;
@@ -904,8 +1095,17 @@
       clearButton.addEventListener('click', () => {
         sourceText.value = '';
         baseTranscript = '';
-        resultsEl.innerHTML = '<p class="result-empty">翻訳結果がここに表示されます。</p>';
         setStatus('消しました。', false);
+      });
+
+      modalClose.addEventListener('click', closeTranslationModal);
+      orderNewest.addEventListener('click', () => {
+        translationOrder = 'newest';
+        renderTranslationHistory();
+      });
+      orderOldest.addEventListener('click', () => {
+        translationOrder = 'oldest';
+        renderTranslationHistory();
       });
 
       if (!SpeechRecognition) {
