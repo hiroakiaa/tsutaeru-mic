@@ -435,8 +435,9 @@
       justify-content: center;
       min-width: 44px;
       height: 30px;
-      color: #002a25;
-      background: var(--main);
+      color: #dbe6ff;
+      background: rgba(143, 179, 255, 0.16);
+      border: 1px solid rgba(143, 179, 255, 0.34);
       border-radius: 999px;
       font-weight: 1000;
     }
@@ -476,9 +477,9 @@
     }
 
     .result-state-badge.is-on {
-      color: #002a25;
-      background: var(--main);
-      border-color: var(--main);
+      color: var(--warning);
+      background: rgba(255, 209, 102, 0.14);
+      border-color: rgba(255, 209, 102, 0.44);
     }
 
     .result-card.is-primary {
@@ -596,6 +597,7 @@
       align-items: center;
       justify-content: space-between;
       gap: 12px;
+      flex-wrap: wrap;
       padding: 10px 4px 14px;
       border-bottom: 1px solid var(--line);
     }
@@ -604,22 +606,6 @@
       margin: 0;
       font-size: clamp(1rem, 4vw, 1.35rem);
       font-weight: 1000;
-    }
-
-    .modal-actions {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      flex-wrap: wrap;
-      justify-content: flex-end;
-    }
-
-    .modal-options {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      flex-wrap: wrap;
-      justify-content: flex-end;
     }
 
     .option-toggle {
@@ -700,6 +686,8 @@
       align-content: center;
       gap: 20px;
       min-height: 0;
+      min-width: 0;
+      overflow: auto;
       padding: clamp(22px, 5vw, 54px);
       background: rgba(7, 22, 18, 0.9);
       border: 1px solid var(--line);
@@ -708,21 +696,25 @@
     }
 
     .show-text {
+      max-width: 100%;
+      min-width: 0;
       margin: 0;
       color: var(--text);
       font-size: clamp(2rem, 8vw, 5.2rem);
       font-weight: 900;
       line-height: 1.5;
       overflow-wrap: anywhere;
+      word-break: break-word;
+      line-break: anywhere;
       white-space: pre-wrap;
     }
 
     .show-body.is-large .show-text {
-      font-size: clamp(2.6rem, 10vw, 7rem);
+      font-size: clamp(2.4rem, 9vw, 6.5rem);
     }
 
     .show-body.is-huge .show-text {
-      font-size: clamp(3.1rem, 13vw, 9rem);
+      font-size: clamp(2.8rem, 10.5vw, 7.8rem);
     }
 
     .show-actions {
@@ -892,17 +884,19 @@
       }
 
       .modal-head {
-        align-items: stretch;
-        flex-direction: column;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: center;
       }
 
-      .modal-actions {
-        width: 100%;
+      .modal-head .option-toggle,
+      .modal-head .order-toggle {
+        grid-column: 1 / -1;
       }
 
-      .modal-options {
-        width: 100%;
-        justify-content: flex-start;
+      .modal-head .modal-close {
+        grid-column: 2;
+        grid-row: 1;
       }
 
       .order-toggle {
@@ -979,6 +973,9 @@
           <button class="quick-phrase-button" type="button" data-quick-phrase="もう一度お願いします。">もう一度</button>
           <button class="quick-phrase-button" type="button" data-quick-phrase="少し待ってください。">少し待って</button>
           <button class="quick-phrase-button" type="button" data-quick-phrase="わかりました。">わかりました</button>
+          <button class="quick-phrase-button" type="button" data-quick-phrase="すみません。わかりません。">わかりません</button>
+          <button class="quick-phrase-button" type="button" data-quick-phrase="私たちに何かお手伝いできますか？">手伝えますか？</button>
+          <button class="quick-phrase-button" type="button" data-quick-phrase="何か困っていることがあったら、教えてください。">困ってる？</button>
         </div>
       </section>
 
@@ -991,25 +988,17 @@
   <section class="translation-modal" id="translation-modal" aria-labelledby="translation-modal-title" aria-modal="true" role="dialog" hidden>
     <header class="modal-head">
       <h2 class="modal-title" id="translation-modal-title">翻訳結果</h2>
-      <div class="modal-actions">
-        <div class="modal-options" aria-label="翻訳結果の設定">
-          <button class="option-toggle" type="button" id="auto-speak-toggle">
-            <i class="fa-solid fa-volume-high" aria-hidden="true"></i>
-            <span>自動読み上げ</span>
-          </button>
-          <button class="option-toggle" type="button" id="auto-clear-toggle">
-            <i class="fa-solid fa-broom" aria-hidden="true"></i>
-            <span>翻訳後に消す</span>
-          </button>
-        </div>
-        <div class="order-toggle" aria-label="翻訳結果の並び順">
-          <button class="is-active" type="button" id="order-newest">最新順</button>
-          <button type="button" id="order-oldest">最初から</button>
-        </div>
-        <button class="modal-close" type="button" id="translation-modal-close" aria-label="閉じる">
-          <i class="fa-solid fa-xmark" aria-hidden="true"></i>
-        </button>
+      <button class="option-toggle" type="button" id="auto-speak-toggle">
+        <i class="fa-solid fa-volume-high" aria-hidden="true"></i>
+        <span>自動読み上げ</span>
+      </button>
+      <div class="order-toggle" aria-label="翻訳結果の並び順">
+        <button class="is-active" type="button" id="order-newest">最新順</button>
+        <button type="button" id="order-oldest">最初から</button>
       </div>
+      <button class="modal-close" type="button" id="translation-modal-close" aria-label="閉じる">
+        <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+      </button>
     </header>
     <div class="modal-results" id="modal-results" aria-live="polite"></div>
   </section>
@@ -1044,7 +1033,6 @@
     const STORAGE_PREFIX = 'tsutaeru_external_interpreter_';
     const HISTORY_STORAGE_KEY = STORAGE_PREFIX + 'history_v1';
     const AUTO_SPEAK_STORAGE_KEY = STORAGE_PREFIX + 'auto_speak';
-    const AUTO_CLEAR_STORAGE_KEY = STORAGE_PREFIX + 'auto_clear';
     const SHOW_SIZE_STORAGE_KEY = STORAGE_PREFIX + 'show_size';
     const MAX_HISTORY_ITEMS = 20;
     const params = new URLSearchParams(location.search);
@@ -1068,7 +1056,6 @@
     let translationHistory = [];
     let translationOrder = 'newest';
     let autoSpeakEnabled = localStorage.getItem(AUTO_SPEAK_STORAGE_KEY) !== 'false';
-    let autoClearEnabled = localStorage.getItem(AUTO_CLEAR_STORAGE_KEY) === 'true';
     let showTextSize = localStorage.getItem(SHOW_SIZE_STORAGE_KEY) || 'normal';
     let showSpeechPayload = { number: 0, text: '', lang: 'ja-JP' };
     let speechState = {
@@ -1080,6 +1067,8 @@
       started: false,
       paused: false
     };
+    let speechVoices = [];
+    let speechVoicesPromise = null;
     let isTranslating = false;
 
     const sourceSelect = document.getElementById('source-lang');
@@ -1101,7 +1090,6 @@
     const showModalLabel = document.getElementById('show-modal-label');
     const showModalSpeak = document.getElementById('show-modal-speak');
     const autoSpeakToggle = document.getElementById('auto-speak-toggle');
-    const autoClearToggle = document.getElementById('auto-clear-toggle');
     const showBody = document.querySelector('.show-body');
     const showSizeButtons = document.querySelectorAll('[data-show-size]');
     const quickPhraseButtons = document.querySelectorAll('[data-quick-phrase]');
@@ -1287,9 +1275,6 @@
     function syncOptionButtons() {
       autoSpeakToggle.classList.toggle('is-active', autoSpeakEnabled);
       autoSpeakToggle.querySelector('span').textContent = autoSpeakEnabled ? '自動読み上げ ON' : '自動読み上げ OFF';
-
-      autoClearToggle.classList.toggle('is-active', autoClearEnabled);
-      autoClearToggle.querySelector('span').textContent = autoClearEnabled ? '翻訳後に消す ON' : '翻訳後に消す OFF';
     }
 
     function applyShowSize(size) {
@@ -1562,7 +1547,48 @@
       resetSpeechState(true);
     }
 
-    function playSpeech(cardId, text, lang, startIndex) {
+    function loadSpeechVoices() {
+      if (!window.speechSynthesis) return Promise.resolve([]);
+
+      const currentVoices = window.speechSynthesis.getVoices();
+      if (currentVoices && currentVoices.length) {
+        speechVoices = currentVoices;
+        return Promise.resolve(speechVoices);
+      }
+
+      if (speechVoicesPromise) return speechVoicesPromise;
+
+      speechVoicesPromise = new Promise((resolve) => {
+        const finish = () => {
+          speechVoices = window.speechSynthesis.getVoices() || [];
+          resolve(speechVoices);
+        };
+
+        const timer = window.setTimeout(finish, 900);
+        window.speechSynthesis.onvoiceschanged = () => {
+          window.clearTimeout(timer);
+          finish();
+        };
+      });
+
+      return speechVoicesPromise;
+    }
+
+    function pickSpeechVoice(lang) {
+      const voices = speechVoices.length ? speechVoices : (window.speechSynthesis ? window.speechSynthesis.getVoices() : []);
+      const targetLang = String(lang || '').toLowerCase();
+      const baseLang = targetLang.split('-')[0];
+
+      if (!voices || !voices.length) return null;
+
+      return voices.find((voice) => String(voice.lang || '').toLowerCase() === targetLang)
+        || voices.find((voice) => String(voice.lang || '').toLowerCase().split('-')[0] === baseLang)
+        || voices.find((voice) => voice.default)
+        || voices[0]
+        || null;
+    }
+
+    async function playSpeech(cardId, text, lang, startIndex) {
       if (!text || !window.speechSynthesis) return;
 
       if (speechState.cardId === cardId && speechState.utterance) {
@@ -1579,6 +1605,7 @@
       }
 
       stopSpeech();
+      await loadSpeechVoices();
 
       const offset = Math.max(0, Math.min(text.length - 1, Number(startIndex || 0)));
       const speakText = text.slice(offset).trim();
@@ -1587,6 +1614,7 @@
 
       const utterance = new SpeechSynthesisUtterance(speakText);
       utterance.lang = lang;
+      utterance.voice = pickSpeechVoice(lang);
       utterance.rate = 0.92;
 
       speechState = {
@@ -1616,7 +1644,10 @@
       utterance.onend = () => resetSpeechState(false);
       utterance.onerror = () => resetSpeechState(true);
 
-      window.speechSynthesis.speak(utterance);
+      window.setTimeout(() => {
+        if (speechState.utterance !== utterance) return;
+        window.speechSynthesis.speak(utterance);
+      }, 60);
     }
 
     function seekSpeech(cardId, percent) {
@@ -1858,12 +1889,6 @@
       openTranslationModal();
       saveTranslationHistory();
 
-      if (autoClearEnabled) {
-        sourceText.value = '';
-        baseTranscript = '';
-        updateTranslateButtonState();
-      }
-
       const completedItem = pendingItem || translationHistory[translationHistory.length - 1];
       const itemNumber = completedItem ? completedItem.number : getNextHistoryNumber() - 1;
       const itemDirection = completedItem ? completedItem.direction : direction;
@@ -2042,11 +2067,6 @@
         localStorage.setItem(AUTO_SPEAK_STORAGE_KEY, String(autoSpeakEnabled));
         syncOptionButtons();
       });
-      autoClearToggle.addEventListener('click', () => {
-        autoClearEnabled = !autoClearEnabled;
-        localStorage.setItem(AUTO_CLEAR_STORAGE_KEY, String(autoClearEnabled));
-        syncOptionButtons();
-      });
       showSizeButtons.forEach((button) => {
         button.addEventListener('click', () => applyShowSize(button.dataset.showSize));
       });
@@ -2064,6 +2084,10 @@
 
       if (!SpeechRecognition) {
         setStatus('このブラウザは音声入力に対応していません。Chromeで開いてください。', true);
+      }
+
+      if (window.speechSynthesis) {
+        loadSpeechVoices();
       }
 
       syncOptionButtons();
