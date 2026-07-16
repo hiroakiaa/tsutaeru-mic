@@ -62,6 +62,12 @@
       opacity: 0.58;
     }
 
+    .main-button:disabled {
+      color: rgba(247, 255, 252, 0.42);
+      background: rgba(169, 200, 191, 0.18);
+      box-shadow: none;
+    }
+
     .app {
       display: grid;
       grid-template-rows: auto auto minmax(0, 1fr);
@@ -224,7 +230,7 @@
 
     .input-panel {
       display: grid;
-      grid-template-rows: minmax(180px, 0.62fr) auto;
+      grid-template-rows: minmax(280px, 1fr) auto;
       min-height: 0;
     }
 
@@ -237,7 +243,7 @@
       display: block;
       width: 100%;
       height: 100%;
-      min-height: 190px;
+      min-height: 280px;
       resize: none;
       color: var(--text);
       background: #020a08;
@@ -257,7 +263,7 @@
       align-items: center;
       justify-content: space-between;
       gap: 10px;
-      padding: 10px 12px;
+      padding: 8px 10px;
       border-top: 1px solid rgba(40, 215, 195, 0.2);
       background: #010605;
     }
@@ -268,6 +274,12 @@
       align-items: center;
       gap: 10px;
       min-width: 0;
+    }
+
+    .right-actions {
+      flex: 1 1 auto;
+      justify-content: flex-end;
+      margin-left: auto;
     }
 
     .icon-button,
@@ -302,6 +314,14 @@
       color: #002a25;
       background: var(--main);
       font-size: 1rem;
+    }
+
+    .main-button:disabled {
+      cursor: not-allowed;
+      color: rgba(247, 255, 252, 0.42);
+      background: rgba(247, 255, 252, 0.12);
+      border: 1px solid rgba(247, 255, 252, 0.1);
+      box-shadow: none;
     }
 
     .sub-button {
@@ -339,6 +359,24 @@
       border: 1px solid var(--line);
       border-radius: var(--radius);
       box-shadow: 0 18px 54px rgba(0, 0, 0, 0.24);
+      animation: slideResultIn 0.28s ease both;
+      transition: transform 0.24s ease, opacity 0.24s ease;
+    }
+
+    .result-set.is-pending {
+      border-style: dashed;
+      background: rgba(40, 215, 195, 0.06);
+    }
+
+    @keyframes slideResultIn {
+      from {
+        opacity: 0;
+        transform: translateY(-10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
     }
 
     .result-number {
@@ -382,7 +420,9 @@
 
     .result-actions {
       display: flex;
+      align-items: center;
       gap: 8px;
+      min-width: min(420px, 46vw);
     }
 
     .result-mini-button {
@@ -397,6 +437,17 @@
       font-size: 1rem;
     }
 
+    .result-mini-button.is-playing {
+      color: #002a25;
+      background: var(--main);
+    }
+
+    .speech-slider {
+      flex: 1 1 auto;
+      min-width: 80px;
+      accent-color: var(--main);
+    }
+
     .result-text {
       margin: 0;
       color: var(--text);
@@ -404,6 +455,17 @@
       line-height: 1.75;
       white-space: pre-wrap;
       overflow-wrap: anywhere;
+    }
+
+    .speech-token {
+      border-radius: 0.35em;
+      transition: background-color 0.12s ease, color 0.12s ease;
+    }
+
+    .speech-token.is-speaking {
+      color: #001f1b;
+      background: linear-gradient(135deg, rgba(40, 215, 195, 0.9), rgba(143, 179, 255, 0.72));
+      box-shadow: 0 0 0 0.12em rgba(40, 215, 195, 0.16);
     }
 
     .is-loading-text {
@@ -492,6 +554,14 @@
       overflow: auto;
     }
 
+    .modal-loading {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--main);
+      font-weight: 900;
+    }
+
     @media (max-width: 820px) {
       body {
         padding: 10px;
@@ -538,17 +608,24 @@
       }
 
       .input-panel {
-        min-height: 330px;
+        grid-template-rows: minmax(360px, 1fr) auto;
+        min-height: calc(100dvh - 260px);
       }
 
       .input-actions {
         align-items: stretch;
         flex-direction: column;
+        padding: 8px;
       }
 
       .left-actions,
       .right-actions {
         width: 100%;
+        margin-left: 0;
+      }
+
+      .right-actions {
+        justify-content: space-between;
       }
 
       .main-button {
@@ -558,7 +635,22 @@
       .sub-button {
         flex: 0 0 auto;
         margin-left: auto;
-        padding-inline: 18px;
+        padding-inline: 16px;
+      }
+
+      .right-actions .main-button {
+        width: auto;
+        min-width: 0;
+      }
+
+      .result-head {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .result-actions {
+        width: 100%;
+        min-width: 0;
       }
 
       .modal-head {
@@ -626,15 +718,15 @@
             <button class="icon-button" type="button" id="mic-button" aria-label="マイク開始">
               <i class="fa-solid fa-microphone" aria-hidden="true"></i>
             </button>
-            <button class="sub-button" type="button" id="clear-button">
-              <i class="fa-regular fa-trash-can" aria-hidden="true"></i>
-              <span>消す</span>
-            </button>
           </div>
           <div class="right-actions">
             <button class="main-button" type="button" id="translate-button">
               <i class="fa-solid fa-language" aria-hidden="true"></i>
               <span>翻訳する</span>
+            </button>
+            <button class="sub-button" type="button" id="clear-button">
+              <i class="fa-regular fa-trash-can" aria-hidden="true"></i>
+              <span>消す</span>
             </button>
           </div>
         </div>
@@ -685,6 +777,16 @@
     let baseTranscript = '';
     let translationHistory = [];
     let translationOrder = 'newest';
+    let speechState = {
+      utterance: null,
+      cardId: '',
+      text: '',
+      lang: '',
+      offset: 0,
+      started: false,
+      paused: false
+    };
+    let isTranslating = false;
 
     const sourceSelect = document.getElementById('source-lang');
     const targetSelect = document.getElementById('target-lang');
@@ -732,6 +834,23 @@
     function setStatus(message, isError) {
       statusEl.textContent = message || '';
       statusEl.classList.toggle('is-error', Boolean(isError));
+    }
+
+    function cssEscapeValue(value) {
+      if (window.CSS && typeof CSS.escape === 'function') {
+        return CSS.escape(value);
+      }
+
+      return String(value || '').replace(/["\\]/g, '\\$&');
+    }
+
+    function sleep(ms) {
+      return new Promise((resolve) => setTimeout(resolve, ms));
+    }
+
+    function updateTranslateButtonState() {
+      const hasText = normalizeText(sourceText.value).length > 0;
+      translateButton.disabled = !hasText || isTranslating;
     }
 
     function renderLanguageSelect(select, selectedCode) {
@@ -863,6 +982,7 @@
         }
 
         sourceText.value = normalizeText((baseTranscript ? baseTranscript + ' ' : '') + interimText);
+        updateTranslateButtonState();
       };
 
       recognition.onerror = (event) => {
@@ -907,36 +1027,196 @@
       }
     }
 
-    function speakText(text, lang) {
+    function buildSpeakableTextHtml(text, cardId) {
+      const source = String(text || '');
+      const parts = source.match(/\s+|[^\s]+/g) || [];
+      let cursor = 0;
+
+      return parts.map((part) => {
+        const start = cursor;
+        const end = cursor + part.length;
+        cursor = end;
+
+        if (/^\s+$/.test(part)) return escapeHtml(part);
+
+        return '<span class="speech-token" data-speech-token="' + escapeHtml(cardId) + '" data-start="' + start + '" data-end="' + end + '">' + escapeHtml(part) + '</span>';
+      }).join('');
+    }
+
+    function clearSpeechHighlight(cardId) {
+      if (!cardId) return;
+
+      document.querySelectorAll('[data-speech-token="' + cssEscapeValue(cardId) + '"]').forEach((token) => {
+        token.classList.remove('is-speaking');
+      });
+    }
+
+    function setSpeechHighlight(cardId, charIndex) {
+      if (!speechState.started) return;
+
+      clearSpeechHighlight(cardId);
+      const tokens = Array.from(document.querySelectorAll('[data-speech-token="' + cssEscapeValue(cardId) + '"]'));
+      const active = tokens.find((token) => {
+        const start = Number(token.dataset.start || 0);
+        const end = Number(token.dataset.end || 0);
+        return charIndex >= start && charIndex < end;
+      }) || tokens[tokens.length - 1];
+
+      if (active) active.classList.add('is-speaking');
+    }
+
+    function updateSpeechControls(cardId, progress, isPlaying) {
+      document.querySelectorAll('[data-speech-toggle]').forEach((button) => {
+        const active = button.dataset.speechToggle === cardId && isPlaying;
+        button.classList.toggle('is-playing', active);
+        button.innerHTML = active
+          ? '<i class="fa-solid fa-pause" aria-hidden="true"></i>'
+          : '<i class="fa-solid fa-play" aria-hidden="true"></i>';
+        button.setAttribute('aria-label', active ? '一時停止' : '再生');
+      });
+
+      if (cardId) {
+        const slider = document.querySelector('[data-speech-slider="' + cssEscapeValue(cardId) + '"]');
+        if (slider) slider.value = String(Math.max(0, Math.min(100, progress || 0)));
+      }
+    }
+
+    function resetSpeechState(clearAll) {
+      if (speechState.cardId) {
+        clearSpeechHighlight(speechState.cardId);
+        updateSpeechControls(speechState.cardId, clearAll ? 0 : 100, false);
+      }
+
+      speechState = {
+        utterance: null,
+        cardId: '',
+        text: '',
+        lang: '',
+        offset: 0,
+        started: false,
+        paused: false
+      };
+    }
+
+    function stopSpeech() {
+      if (!window.speechSynthesis) return;
+      window.speechSynthesis.cancel();
+      resetSpeechState(true);
+    }
+
+    function playSpeech(cardId, text, lang, startIndex) {
       if (!text || !window.speechSynthesis) return;
 
-      window.speechSynthesis.cancel();
-      const utterance = new SpeechSynthesisUtterance(text);
+      if (speechState.cardId === cardId && speechState.utterance) {
+        if (speechState.paused) {
+          speechState.paused = false;
+          window.speechSynthesis.resume();
+          updateSpeechControls(cardId, Number((document.querySelector('[data-speech-slider="' + cssEscapeValue(cardId) + '"]') || {}).value || 0), true);
+        } else {
+          speechState.paused = true;
+          window.speechSynthesis.pause();
+          updateSpeechControls(cardId, Number((document.querySelector('[data-speech-slider="' + cssEscapeValue(cardId) + '"]') || {}).value || 0), false);
+        }
+        return;
+      }
+
+      stopSpeech();
+
+      const offset = Math.max(0, Math.min(text.length - 1, Number(startIndex || 0)));
+      const speakText = text.slice(offset).trim();
+
+      if (!speakText) return;
+
+      const utterance = new SpeechSynthesisUtterance(speakText);
       utterance.lang = lang;
       utterance.rate = 0.92;
+
+      speechState = {
+        utterance: utterance,
+        cardId: cardId,
+        text: text,
+        lang: lang,
+        offset: offset,
+        started: false,
+        paused: false
+      };
+
+      utterance.onstart = () => {
+        speechState.started = true;
+        updateSpeechControls(cardId, text.length ? (offset / text.length) * 100 : 0, true);
+      };
+
+      utterance.onboundary = (event) => {
+        if (!speechState.started || speechState.cardId !== cardId) return;
+
+        const charIndex = offset + Number(event.charIndex || 0);
+        const progress = text.length ? (charIndex / text.length) * 100 : 0;
+        setSpeechHighlight(cardId, charIndex);
+        updateSpeechControls(cardId, progress, true);
+      };
+
+      utterance.onend = () => resetSpeechState(false);
+      utterance.onerror = () => resetSpeechState(true);
+
       window.speechSynthesis.speak(utterance);
     }
 
-    function buildResultCard(title, text, lang, primary) {
+    function seekSpeech(cardId, percent) {
+      const textElement = document.querySelector('[data-speech-text="' + cssEscapeValue(cardId) + '"]');
+      if (!textElement) return;
+
+      const text = textElement.dataset.rawText || '';
+      const lang = textElement.dataset.lang || 'ja-JP';
+      const startIndex = Math.floor(text.length * (Number(percent || 0) / 100));
+
+      stopSpeech();
+      playSpeech(cardId, text, lang, startIndex);
+    }
+
+    function buildResultCard(title, text, lang, primary, cardId) {
       return (
         '<article class="result-card' + (primary ? ' is-primary' : '') + '">' +
           '<div class="result-head">' +
             '<strong>' + escapeHtml(title) + '</strong>' +
             '<div class="result-actions">' +
-              '<button class="result-mini-button" type="button" data-speak="' + escapeHtml(text) + '" data-lang="' + escapeHtml(lang) + '" aria-label="読み上げ">' +
-                '<i class="fa-solid fa-volume-high" aria-hidden="true"></i>' +
+              '<button class="result-mini-button" type="button" data-speech-toggle="' + escapeHtml(cardId) + '" data-text="' + escapeHtml(text) + '" data-lang="' + escapeHtml(lang) + '" aria-label="再生">' +
+                '<i class="fa-solid fa-play" aria-hidden="true"></i>' +
+              '</button>' +
+              '<input class="speech-slider" type="range" min="0" max="100" value="0" step="1" data-speech-slider="' + escapeHtml(cardId) + '" aria-label="再生位置">' +
+              '<button class="result-mini-button" type="button" data-speech-stop="' + escapeHtml(cardId) + '" aria-label="停止">' +
+                '<i class="fa-solid fa-stop" aria-hidden="true"></i>' +
               '</button>' +
             '</div>' +
           '</div>' +
-          '<p class="result-text">' + escapeHtml(text) + '</p>' +
+          '<p class="result-text" data-speech-text="' + escapeHtml(cardId) + '" data-raw-text="' + escapeHtml(text) + '" data-lang="' + escapeHtml(lang) + '">' + buildSpeakableTextHtml(text, cardId) + '</p>' +
         '</article>'
       );
     }
 
     function bindResultButtons() {
-      document.querySelectorAll('[data-speak]').forEach((button) => {
+      document.querySelectorAll('[data-speech-toggle]').forEach((button) => {
         button.addEventListener('click', () => {
-          speakText(button.getAttribute('data-speak'), button.getAttribute('data-lang'));
+          playSpeech(button.dataset.speechToggle, button.dataset.text || '', button.dataset.lang || 'ja-JP');
+        });
+      });
+
+      document.querySelectorAll('[data-speech-stop]').forEach((button) => {
+        button.addEventListener('click', () => {
+          if (speechState.cardId === button.dataset.speechStop) {
+            stopSpeech();
+          }
+        });
+      });
+
+      document.querySelectorAll('[data-speech-slider]').forEach((slider) => {
+        slider.addEventListener('input', () => {
+          if (speechState.cardId === slider.dataset.speechSlider) {
+            setSpeechHighlight(slider.dataset.speechSlider, Math.floor((speechState.text.length || 1) * (Number(slider.value || 0) / 100)));
+          }
+        });
+
+        slider.addEventListener('change', () => {
+          seekSpeech(slider.dataset.speechSlider, slider.value);
         });
       });
     }
@@ -957,28 +1237,75 @@
         : (motherLang === targetLang ? response.targetText || '' : '');
 
       return (
-        '<section class="result-set">' +
+        '<section class="result-set" data-result-id="result-' + escapeHtml(item.number) + '">' +
           '<span class="result-number">#' + escapeHtml(item.number) + '</span>' +
           '<p class="result-set-title">' + escapeHtml(item.createdAt) + '</p>' +
-          buildResultCard(getLanguage(motherLang).label, motherText, getSpeechCode(motherLang), true) +
-          buildResultCard('JP 日本語', jaText, 'ja-JP', false) +
-          buildResultCard('US 英語', response.englishText || '', 'en-US', false) +
+          buildResultCard(getLanguage(motherLang).label, motherText, getSpeechCode(motherLang), true, 'result-' + item.number + '-mother') +
+          buildResultCard('JP 日本語', jaText, 'ja-JP', false, 'result-' + item.number + '-ja') +
+          buildResultCard('US 英語', response.englishText || '', 'en-US', false, 'result-' + item.number + '-en') +
         '</section>'
       );
     }
 
+    function addPendingTranslation(text, sourceLang, targetLang) {
+      const item = {
+        number: translationHistory.length + 1,
+        createdAt: new Date().toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' }),
+        originalText: text,
+        pending: true,
+        response: {
+          sourceLang: sourceLang,
+          targetLang: targetLang,
+          sourceText: text,
+          englishText: '',
+          targetText: ''
+        }
+      };
+
+      translationHistory.push(item);
+      renderTranslationHistory();
+      openTranslationModal();
+      return item;
+    }
+
     function renderTranslationHistory() {
+      const previousTops = new Map();
+      modalResults.querySelectorAll('[data-result-id]').forEach((element) => {
+        previousTops.set(element.dataset.resultId, element.getBoundingClientRect().top);
+      });
+
       const items = translationOrder === 'oldest'
         ? translationHistory.slice()
         : translationHistory.slice().reverse();
 
       modalResults.innerHTML = items.length
-        ? items.map(buildResultSetHtml).join('')
+        ? items.map((item) => item.pending
+            ? '<section class="result-set is-pending" data-result-id="result-' + escapeHtml(item.number) + '"><span class="result-number">#' + escapeHtml(item.number) + '</span><p class="result-set-title">' + escapeHtml(item.createdAt) + '</p><div class="modal-loading"><i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i><span>翻訳中です。</span></div><p class="result-text">' + escapeHtml(item.originalText || '') + '</p></section>'
+            : buildResultSetHtml(item)
+          ).join('')
         : '<p class="result-empty">翻訳結果がここに表示されます。</p>';
 
       orderNewest.classList.toggle('is-active', translationOrder === 'newest');
       orderOldest.classList.toggle('is-active', translationOrder === 'oldest');
       bindResultButtons();
+
+      requestAnimationFrame(() => {
+        modalResults.querySelectorAll('[data-result-id]').forEach((element) => {
+          const previousTop = previousTops.get(element.dataset.resultId);
+          if (typeof previousTop !== 'number') return;
+
+          const delta = previousTop - element.getBoundingClientRect().top;
+          if (Math.abs(delta) < 1) return;
+
+          element.animate([
+            { transform: 'translateY(' + delta + 'px)' },
+            { transform: 'translateY(0)' }
+          ], {
+            duration: 260,
+            easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)'
+          });
+        });
+      });
     }
 
     function openTranslationModal() {
@@ -991,20 +1318,26 @@
       document.body.style.overflow = '';
     }
 
-    function renderTranslation(response, originalText) {
+    function renderTranslation(response, originalText, activePendingItem) {
+      const pendingItem = activePendingItem || translationHistory.find((item) => item.pending && item.originalText === originalText);
       const targetLang = response.targetLang || targetSelect.value;
-      const createdAt = new Date().toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
 
-      translationHistory.push({
-        number: translationHistory.length + 1,
-        createdAt: createdAt,
-        response: response,
-        originalText: originalText
-      });
+      if (pendingItem) {
+        pendingItem.pending = false;
+        pendingItem.response = response;
+        pendingItem.originalText = originalText;
+      } else {
+        translationHistory.push({
+          number: translationHistory.length + 1,
+          createdAt: new Date().toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' }),
+          response: response,
+          originalText: originalText
+        });
+      }
 
       renderTranslationHistory();
       openTranslationModal();
-      speakText(response.targetText || '', getSpeechCode(targetLang));
+      playSpeech('result-' + (pendingItem ? pendingItem.number : translationHistory.length) + '-mother', response.targetText || '', getSpeechCode(targetLang));
     }
 
     function persistTranslationInBackground(response) {
@@ -1043,30 +1376,41 @@
         return;
       }
 
+      isTranslating = true;
       translateButton.disabled = true;
       translateButton.innerHTML = '<i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i><span>翻訳中</span>';
       setStatus('翻訳しています。', false);
-      resultsEl.innerHTML = '<p class="result-empty is-loading-text"><i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i><span>翻訳中です。</span></p>';
+      const pendingItem = addPendingTranslation(text, sourceLang, targetLang);
 
-      requestGasJsonp('translateExternalInterpreter', {
-        text: text,
-        sourceLang: sourceLang,
-        targetLang: targetLang
-      }, 30000).then((response) => {
+      Promise.all([
+        requestGasJsonp('translateExternalInterpreter', {
+          text: text,
+          sourceLang: sourceLang,
+          targetLang: targetLang
+        }, 30000),
+        sleep(1000)
+      ]).then(([response]) => {
         if (!response || !response.ok) {
           throw new Error(response && response.message ? response.message : '翻訳に失敗しました。');
         }
 
-        renderTranslation(response, text);
+        renderTranslation(response, text, pendingItem);
         persistTranslationInBackground(response);
         setStatus(response.fromTranslationBank ? '翻訳バンクから表示しました。' : '翻訳しました。', false);
       }).catch((error) => {
+        if (pendingItem) {
+          pendingItem.pending = false;
+          pendingItem.response.targetText = '翻訳に失敗しました。';
+          pendingItem.response.englishText = '';
+          renderTranslationHistory();
+        }
         if (!translationHistory.length) {
           modalResults.innerHTML = '<p class="result-empty">翻訳結果がここに表示されます。</p>';
         }
         setStatus(error && error.message ? error.message : '翻訳に失敗しました。', true);
       }).finally(() => {
-        translateButton.disabled = false;
+        isTranslating = false;
+        updateTranslateButtonState();
         translateButton.innerHTML = '<i class="fa-solid fa-language" aria-hidden="true"></i><span>翻訳する</span>';
       });
     }
@@ -1090,11 +1434,13 @@
       });
 
       targetSelect.addEventListener('change', saveSettings);
+      sourceText.addEventListener('input', updateTranslateButtonState);
       micButton.addEventListener('click', toggleMic);
       translateButton.addEventListener('click', translateText);
       clearButton.addEventListener('click', () => {
         sourceText.value = '';
         baseTranscript = '';
+        updateTranslateButtonState();
         setStatus('消しました。', false);
       });
 
@@ -1111,6 +1457,8 @@
       if (!SpeechRecognition) {
         setStatus('このブラウザは音声入力に対応していません。Chromeで開いてください。', true);
       }
+
+      updateTranslateButtonState();
     }
 
     initialize();
