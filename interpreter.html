@@ -979,12 +979,33 @@
         text = text.split(from).join(to);
       });
 
-      return normalizeText(text)
+      return addSpeechPunctuation(text)
         .replace(/([。！？!?]){2,}/g, '$1')
-        .replace(/([ぁ-んァ-ヶ一-龠々ー])さて/g, '$1。さて')
-        .replace(/([ぁ-んァ-ヶ一-龠々ー])まず/g, '$1。まず')
         .replace(/^。+/, '')
         .trim();
+    }
+
+    function addSpeechPunctuation(value) {
+      let text = normalizeText(value);
+
+      if (!text) return '';
+
+      SCHOOL_TEXT_FIXES.forEach(([from, to]) => {
+        text = text.split(from).join(to);
+      });
+
+      text = text
+        .replace(/^(おはようございます|こんにちは|こんばんは)(?=(これから|今日は|さて|では|それでは|まず|前回|教科書|授業))/g, '$1。')
+        .replace(/([^。！？!?])(?=(それでは|では|さて|まず|次に|続いて|最後に|前回|今回|今日は|これから|時間は|答えは|ヒントは|質問|できた人|解けた人|終わった人))/g, '$1。')
+        .replace(/(ですか|ますか|でしょうか|ありますか|いますか|できましたか|わかりましたか|覚えていますか|よいですか|いいですか|何ですか|どこですか|どうですか|どれですか|いつですか)(?![。！？!?])/g, '$1？')
+        .replace(/(してください|して下さい|しましょう|ましょう|始めます|終わります|開いてください|書いてください|読んでください|解きましょう|確認しましょう|見せに来てください|持ってきましょう|持ってきてください|話してください|発表してください|待ってください)(?![。！？!?])/g, '$1。')
+        .replace(/。([。！？!?])/g, '$1')
+        .replace(/？[。！？!?]+/g, '？')
+        .replace(/！[。！？!?]+/g, '！')
+        .replace(/([。！？!?]){2,}/g, '$1')
+        .replace(/^。+/, '');
+
+      return normalizeText(text);
     }
 
     function getLanguage(code) {
@@ -1143,7 +1164,7 @@
         }
 
         if (finalText) {
-          baseTranscript = normalizeText((baseTranscript ? baseTranscript + ' ' : '') + finalText);
+          baseTranscript = addSpeechPunctuation((baseTranscript ? baseTranscript + ' ' : '') + finalText);
         }
 
         sourceText.value = normalizeText((baseTranscript ? baseTranscript + ' ' : '') + interimText);
@@ -1249,7 +1270,7 @@
     function resetSpeechState(clearAll) {
       if (speechState.cardId) {
         clearSpeechHighlight(speechState.cardId);
-        updateSpeechControls(speechState.cardId, clearAll ? 0 : 100, false);
+        updateSpeechControls(speechState.cardId, 0, false);
       }
 
       speechState = {
