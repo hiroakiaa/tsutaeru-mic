@@ -2,6 +2,9 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>つたえる君 外部マイク</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
@@ -216,6 +219,22 @@
 
     .meta strong {
       color: var(--text);
+    }
+
+    .refresh-meta {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      min-height: 38px;
+      padding: 0 14px;
+      color: var(--main);
+      background: rgba(40, 215, 195, 0.08);
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      font-size: 0.9rem;
+      font-weight: 900;
+      white-space: nowrap;
     }
 
     .meta select {
@@ -562,6 +581,11 @@
         grid-template-columns: minmax(0, 1.08fr) minmax(0, 0.92fr);
       }
 
+      .refresh-meta {
+        grid-column: 1 / -1;
+        width: 100%;
+      }
+
       .sent-meta {
         grid-column: 1 / -1;
         justify-self: end;
@@ -610,6 +634,10 @@
             <small>送信</small>
             <strong id="sent-count-label">0件</strong>
           </div>
+          <button class="refresh-meta" type="button" id="refresh-app-button">
+            <i class="fa-solid fa-rotate" aria-hidden="true"></i>
+            <span>最新版</span>
+          </button>
         </div>
         <section class="input-area" aria-label="音声入力">
           <div class="status" id="status">停止中</div>
@@ -630,6 +658,7 @@
 
   <script>
     const GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzBSH540vZK4G62twUfsketq9Pi2RZFocmfcNFwdEVV-IPqHH1Izb0VAFW_SRtN4nbf/exec';
+    const EXTERNAL_MIC_VERSION = '20260717-1';
     const LESSON_MIC_IDLE_STATUS_MS = 2500;
     const LESSON_MIC_IDLE_FLUSH_MS = 4500;
     const LESSON_MIC_CHUNK_SENTENCE_COUNT = 1;
@@ -775,6 +804,7 @@
 
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     const startButton = document.getElementById('start-button');
+    const refreshAppButton = document.getElementById('refresh-app-button');
     const statusEl = document.getElementById('status');
     const roomIdDisplay = document.getElementById('room-id-display');
     const roomStartup = document.getElementById('room-startup');
@@ -814,8 +844,29 @@
       statusEl.classList.toggle('is-error', Boolean(isError));
     }
 
+    function buildVersionedExternalMicUrl(cacheBust) {
+      const nextUrl = new URL(window.location.href);
+      nextUrl.searchParams.set('v', EXTERNAL_MIC_VERSION);
+      if (cacheBust) {
+        nextUrl.searchParams.set('refresh', String(Date.now()));
+      } else {
+        nextUrl.searchParams.delete('refresh');
+      }
+      return nextUrl.toString();
+    }
+
+    function ensureFreshExternalMicVersion() {
+      if (params.get('v') === EXTERNAL_MIC_VERSION) return true;
+      window.location.replace(buildVersionedExternalMicUrl(false));
+      return false;
+    }
+
+    function refreshExternalMicApp() {
+      window.location.replace(buildVersionedExternalMicUrl(true));
+    }
+
     function getConnectionHelpMessage() {
-      return '送信の確認に時間がかかっています。マイクは止めずに続けて大丈夫です。長く続く場合は、Wi-Fiを確認し、ページを閉じずに少し待ってください。';
+      return '保存確認に少し時間がかかっています。マイクは止めずに続けて大丈夫です。赤い未送信が残ったときだけ、Wi-Fiを確認して再送してください。';
     }
 
     function setHistoryEmptyMessage(message) {
@@ -1117,7 +1168,7 @@
         const isChecking = item.state === 'checking';
         const isError = item.state === 'error';
         const stateHtml = isSending || isRetrying || isChecking
-          ? '<span class="history-card-state"><span class="history-spinner" aria-hidden="true"></span>' + (isChecking ? '保存確認中' : (isRetrying ? '再送中' : '送信準備中')) + '</span>'
+          ? '<span class="history-card-state"><span class="history-spinner" aria-hidden="true"></span>' + (isChecking ? '保存確認中' : (isRetrying ? '再送中' : '保存中')) + '</span>'
           : (isError
             ? '<span class="history-card-state">未送信</span>'
             : '<span class="history-card-state">送信済み</span>');
@@ -1157,13 +1208,24 @@
       return id;
     }
 
-    function markSentHistoryDone(id) {
+    function completeSentHistory(id, message) {
       if (!id) return;
       const item = sentHistory.find((row) => row.id === id);
       if (!item) return;
+
+      if (!item.counted) {
+        sentCount += 1;
+        sentCountEl.textContent = sentCount + '件';
+        item.counted = true;
+      }
+
       item.state = 'sent';
       item.error = '';
       renderSentHistory();
+
+      if (message) {
+        setStatus(message, false);
+      }
     }
 
     function updateSentHistoryState(id, state, error) {
@@ -1421,10 +1483,7 @@
           }
 
           if (text && result.duplicate) {
-            sentCount += 1;
-            sentCountEl.textContent = sentCount + '件';
-            markSentHistoryDone(historyId);
-            setStatus('この文はすでに保存済みです。', false);
+            completeSentHistory(historyId, 'この文はすでに保存済みです。');
             return;
           }
 
@@ -1433,10 +1492,7 @@
           }
 
           if (text) {
-            sentCount += 1;
-            sentCountEl.textContent = sentCount + '件';
-            markSentHistoryDone(historyId);
-            setStatus('送信しました。生徒側に順番に表示されます。', false);
+            completeSentHistory(historyId, '送信しました。生徒側に順番に表示されます。');
           } else if (force) {
             setStatus('残りの音声を授業ログに確定しました。', false);
           }
@@ -1449,10 +1505,7 @@
           window.setTimeout(function () {
             confirmLessonTextSaved(historyId).then(function (saved) {
               if (saved) {
-                sentCount += 1;
-                sentCountEl.textContent = sentCount + '件';
-                markSentHistoryDone(historyId);
-                setStatus('保存済みを確認しました。マイクはそのまま続けられます。', false);
+                completeSentHistory(historyId, '保存済みを確認しました。マイクはそのまま続けられます。');
                 return;
               }
 
@@ -1594,6 +1647,8 @@
       }
     });
 
+    refreshAppButton.addEventListener('click', refreshExternalMicApp);
+
     historyOldestButton.addEventListener('click', () => {
       historyOrder = 'oldest';
       renderSentHistory();
@@ -1631,7 +1686,9 @@
     roomStartupRetry.addEventListener('click', () => {
       initializeExternalRoomId();
     });
-    initializeExternalRoomId();
+    if (ensureFreshExternalMicVersion()) {
+      initializeExternalRoomId();
+    }
   </script>
 </body>
 </html>
