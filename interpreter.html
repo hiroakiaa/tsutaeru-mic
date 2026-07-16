@@ -1119,6 +1119,8 @@
     let speechVoicesPromise = null;
     let speechRetryTimer = 0;
     let speechProgressTimer = 0;
+    let speechFallbackTimer = 0;
+    let speechBoundarySeen = false;
     let speechPrimed = false;
     let isTranslating = false;
 
@@ -1379,7 +1381,6 @@
       sourceText.value = normalizeText(current ? current + ' ' + phrase : phrase);
       baseTranscript = sourceText.value;
       updateTranslateButtonState();
-      sourceText.focus();
     }
 
     function setDirection(nextDirection, keepLanguages) {
@@ -1599,9 +1600,12 @@
 
     function resetSpeechState(clearAll) {
       window.clearTimeout(speechRetryTimer);
+      window.clearTimeout(speechFallbackTimer);
       window.clearInterval(speechProgressTimer);
       speechRetryTimer = 0;
+      speechFallbackTimer = 0;
       speechProgressTimer = 0;
+      speechBoundarySeen = false;
 
       if (speechState.cardId) {
         clearSpeechHighlight(speechState.cardId);
@@ -1691,19 +1695,31 @@
     }
 
     function startSpeechProgressFallback(cardId, text, offset, speakText, lang) {
-      const startedAt = Date.now();
-      const duration = estimateSpeechDuration(speakText, lang);
-
+      window.clearTimeout(speechFallbackTimer);
       window.clearInterval(speechProgressTimer);
-      speechProgressTimer = window.setInterval(() => {
-        if (!speechState.started || speechState.paused || speechState.cardId !== cardId) return;
 
-        const ratio = Math.min(0.98, Math.max(0, (Date.now() - startedAt) / duration));
-        const charIndex = Math.min(text.length - 1, offset + Math.floor(speakText.length * ratio));
-        const progress = text.length ? (charIndex / text.length) * 100 : 0;
-        setSpeechHighlight(cardId, charIndex);
-        updateSpeechControls(cardId, progress, true);
-      }, 160);
+      speechFallbackTimer = window.setTimeout(() => {
+        if (speechBoundarySeen || !speechState.started || speechState.paused || speechState.cardId !== cardId) return;
+
+        const startedAt = Date.now();
+        const duration = estimateSpeechDuration(speakText, lang);
+
+        speechProgressTimer = window.setInterval(() => {
+          if (speechBoundarySeen) {
+            window.clearInterval(speechProgressTimer);
+            speechProgressTimer = 0;
+            return;
+          }
+
+          if (!speechState.started || speechState.paused || speechState.cardId !== cardId) return;
+
+          const ratio = Math.min(0.94, Math.max(0, (Date.now() - startedAt) / duration));
+          const charIndex = Math.min(text.length - 1, offset + Math.floor(speakText.length * ratio));
+          const progress = text.length ? (charIndex / text.length) * 100 : 0;
+          setSpeechHighlight(cardId, charIndex);
+          updateSpeechControls(cardId, progress, true);
+        }, 220);
+      }, 950);
     }
 
     function startSpeechUtterance(cardId, text, lang, startIndex, isRetry) {
@@ -1727,6 +1743,7 @@
         started: false,
         paused: false
       };
+      speechBoundarySeen = false;
 
       utterance.onstart = () => {
         if (speechState.utterance !== utterance) return;
@@ -1740,6 +1757,12 @@
 
       utterance.onboundary = (event) => {
         if (!speechState.started || speechState.cardId !== cardId) return;
+
+        speechBoundarySeen = true;
+        window.clearTimeout(speechFallbackTimer);
+        window.clearInterval(speechProgressTimer);
+        speechFallbackTimer = 0;
+        speechProgressTimer = 0;
 
         const charIndex = Math.min(text.length - 1, offset + Number(event.charIndex || 0));
         const progress = text.length ? (charIndex / text.length) * 100 : 0;
