@@ -2,6 +2,9 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>つたえる君 外部通訳</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
@@ -118,6 +121,22 @@
     .status.is-error {
       color: var(--danger);
       border-bottom-color: rgba(255, 120, 144, 0.62);
+    }
+
+    .refresh-button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      min-height: 36px;
+      padding: 0 12px;
+      color: var(--main);
+      background: rgba(40, 215, 195, 0.08);
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      font-size: 0.84rem;
+      font-weight: 900;
+      white-space: nowrap;
     }
 
     .toolbar {
@@ -792,6 +811,10 @@
         height: calc(100dvh - 20px);
       }
 
+      .refresh-button span {
+        display: none;
+      }
+
       .toolbar {
         grid-template-columns: repeat(2, minmax(0, 1fr));
         padding: 10px;
@@ -913,6 +936,10 @@
         <i class="fa-solid fa-language" aria-hidden="true"></i>
         <span>つたえる君（通訳）</span>
       </h1>
+      <button class="refresh-button" type="button" id="refresh-app-button" aria-label="最新版に更新">
+        <i class="fa-solid fa-rotate" aria-hidden="true"></i>
+        <span>最新版</span>
+      </button>
       <div class="status" id="status">準備できました。</div>
     </header>
 
@@ -1030,6 +1057,7 @@
 
   <script>
     const GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzBSH540vZK4G62twUfsketq9Pi2RZFocmfcNFwdEVV-IPqHH1Izb0VAFW_SRtN4nbf/exec';
+    const EXTERNAL_APP_VERSION = '20260717-1';
     const STORAGE_PREFIX = 'tsutaeru_external_interpreter_';
     const HISTORY_STORAGE_KEY = STORAGE_PREFIX + 'history_v1';
     const AUTO_SPEAK_STORAGE_KEY = STORAGE_PREFIX + 'auto_speak';
@@ -1074,6 +1102,7 @@
     const sourceSelect = document.getElementById('source-lang');
     const targetSelect = document.getElementById('target-lang');
     const sourceText = document.getElementById('source-text');
+    const refreshAppButton = document.getElementById('refresh-app-button');
     const micButton = document.getElementById('mic-button');
     const clearButton = document.getElementById('clear-button');
     const translateButton = document.getElementById('translate-button');
@@ -1210,6 +1239,27 @@
       localStorage.setItem(STORAGE_PREFIX + 'direction', direction);
       localStorage.setItem(STORAGE_PREFIX + 'sourceLang', sourceSelect.value);
       localStorage.setItem(STORAGE_PREFIX + 'targetLang', targetSelect.value);
+    }
+
+    function buildVersionedExternalUrl(cacheBust) {
+      const nextUrl = new URL(window.location.href);
+      nextUrl.searchParams.set('v', EXTERNAL_APP_VERSION);
+      if (cacheBust) {
+        nextUrl.searchParams.set('refresh', String(Date.now()));
+      } else {
+        nextUrl.searchParams.delete('refresh');
+      }
+      return nextUrl.toString();
+    }
+
+    function ensureFreshExternalAppVersion() {
+      if (params.get('v') === EXTERNAL_APP_VERSION) return true;
+      window.location.replace(buildVersionedExternalUrl(false));
+      return false;
+    }
+
+    function refreshExternalApp() {
+      window.location.replace(buildVersionedExternalUrl(true));
     }
 
     function getNextHistoryNumber() {
@@ -2047,6 +2097,7 @@
 
       targetSelect.addEventListener('change', saveSettings);
       sourceText.addEventListener('input', updateTranslateButtonState);
+      refreshAppButton.addEventListener('click', refreshExternalApp);
       micButton.addEventListener('click', toggleMic);
       translateButton.addEventListener('click', translateText);
       clearButton.addEventListener('click', () => {
@@ -2096,7 +2147,9 @@
       updateTranslateButtonState();
     }
 
-    initialize();
+    if (ensureFreshExternalAppVersion()) {
+      initialize();
+    }
   </script>
 </body>
 </html>
